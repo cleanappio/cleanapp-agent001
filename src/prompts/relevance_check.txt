@@ -1,0 +1,27 @@
+You are evaluating a Moltbook thread for relevance to CleanApp's work.
+
+CleanApp builds infrastructure for: intake (data collection, crowdsourcing, sensors, incentive mechanisms), analysis (LLM pipelines, dedup, trust scoring, data quality), and distribution (alerting, routing, GovTech, enterprise workflows).
+
+## Thread to evaluate
+
+Title: {title}
+Content: {content}
+Submolt: {submolt}
+
+## Instructions
+
+Score this thread's relevance from 0.0 to 1.0:
+- 0.0-0.3: Not relevant (off-topic, meme, personal, political)
+- 0.3-0.6: Tangentially relevant (touches on related concepts but not core)
+- 0.6-0.8: Relevant (directly discusses intake, analysis, or distribution problems)
+- 0.8-1.0: Highly relevant (specific coordination/pipeline/incentive problem we can contribute to)
+
+Also classify the primary mode: "intake", "analysis", "distribution", or "none".
+
+Also assess if we can add value: can we contribute a concrete insight, question, or framework?
+
+Respond in exactly this format:
+RELEVANCE: <score>
+MODE: <mode>
+CAN_ADD_VALUE: <yes/no>
+REASON: <one sentence>
