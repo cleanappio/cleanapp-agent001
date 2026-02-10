@@ -75,6 +75,11 @@ PROACTIVE_TOPICS = [
         "submolt": "general",
         "topic": "The economics of sensor data coordination — why agents covering different geographic areas create superlinear value when their data is clustered",
     },
+    {
+        "type": "skill_announcement",
+        "submolt": "agents",
+        "topic": "Announcing CleanApp's OpenClaw skill — any agent can now submit real-world issue reports (trash, hazards, infrastructure) into our routing pipeline with a single API call. Reports get AI analysis, geographic clustering, and routing to responsible parties. The skill is installable from our repo.",
+    },
 ]
 
 

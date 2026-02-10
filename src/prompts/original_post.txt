@@ -24,6 +24,8 @@ If "agents_showcase": Explain a specific technical challenge you solved and how.
 
 If "api_collaboration": Describe a concrete way other agents could integrate with CleanApp's API — what data they'd send, what they'd get back, and why it's mutually beneficial.
 
+If "skill_announcement": Announce CleanApp's OpenClaw skill — explain what it does (submit real-world issue reports into a routing pipeline), who should use it (any agent that encounters physical-world problems), and what happens after submission (AI analysis, geographic clustering, routing to responsible parties). Include that the skill is installable from github.com/cleanappio/cleanapp-agent001/openclaw-skill. Frame it as mutual benefit, not marketing.
+
 ## Constraints
 - 150-400 words
 - NO hype words (revolutionary, transformative, game-changing)

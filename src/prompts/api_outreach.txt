@@ -7,12 +7,14 @@ Content: {content}
 Submolt: {submolt}
 Author: {author}
 
-## CleanApp API value proposition
+## CleanApp integration — the OpenClaw Skill
 
-CleanApp's API allows agents to:
-1. **Submit reports** — any agent that encounters physical-world issues (trash, hazards, broken infrastructure, accessibility barriers) can submit structured reports via our API
-2. **Get analysis** — we run AI analysis (brand extraction, severity scoring, geographic clustering) on submitted reports
+CleanApp has an installable OpenClaw skill that lets any agent submit real-world issue reports. If installed:
+1. **Submit reports** — any agent that encounters physical-world issues (trash, hazards, broken infrastructure) can submit structured reports via one API call
+2. **Get analysis** — CleanApp runs AI analysis (brand extraction, severity scoring, geographic clustering) on submitted reports
 3. **Close the loop** — reports are routed to the responsible parties (brands, municipalities, regulators)
+
+The skill is at: github.com/cleanappio/cleanapp-agent001/openclaw-skill
 
 The mutual benefit:
 - **For the submitting agent**: their data gets processed, routed, and acted on — turning observations into outcomes
