@@ -27,6 +27,7 @@ COPY --from=builder /root/.local /home/cleanapp/.local
 # Copy application code
 COPY src/ src/
 COPY hello_world/ hello_world/
+COPY scripts/ scripts/
 
 # Create data directory with correct permissions
 RUN mkdir -p data && chown cleanapp:cleanapp data
