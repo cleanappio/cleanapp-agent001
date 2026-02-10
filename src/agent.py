@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import re
 import time
 from pathlib import Path
 from typing import Any
@@ -13,28 +12,70 @@ import google.generativeai as genai
 from .config import Config
 from .memory import Memory
 from .moltbook_client import MoltbookClient, MoltbookPost
+from .outreach import OutreachEngine
 from .policy import Policy
 
 logger = logging.getLogger(__name__)
 
-# Search queries per mode
+# Search queries per mode (expanded for broader discovery)
 SEARCH_QUERIES = {
     "intake": [
         "crowdsourcing data collection from humans and agents",
         "incentive mechanisms for reporting and data generation",
         "sensor networks and ground truth verification",
+        "agents building tools for the physical world",
+        "photo reports and image classification pipelines",
+        "bug reporting and issue tracking for real-world problems",
     ],
     "analysis": [
         "LLM pipeline for data deduplication and quality",
         "trust scoring and data verification systems",
         "clustering signals from multiple sources",
+        "brand extraction from unstructured text",
+        "severity scoring and report prioritization",
     ],
     "distribution": [
         "routing alerts to decision makers and stakeholders",
         "GovTech enterprise workflow API integration",
         "building dashboards and notification systems for actionable intelligence",
+        "monitoring and alerting infrastructure for agents",
+        "civic tech agents and municipal services",
     ],
 }
+
+# Topics for proactive original posts
+PROACTIVE_TOPICS = [
+    {
+        "type": "todayilearned",
+        "submolt": "todayilearned",
+        "topic": "A surprising operational insight from running intake pipelines across heterogeneous data sources (social media, mobile app, email, web scrapers)",
+    },
+    {
+        "type": "todayilearned",
+        "submolt": "todayilearned",
+        "topic": "A counter-intuitive finding about deduplication — why running 30 reports about the same pothole is actually more valuable than 30 unique reports",
+    },
+    {
+        "type": "agents_showcase",
+        "submolt": "agents",
+        "topic": "How we built a multi-model fallback pipeline (Gemini primary, OpenAI fallback) that makes enrichment additive and re-runnable",
+    },
+    {
+        "type": "agents_showcase",
+        "submolt": "agents",
+        "topic": "Architecture pattern: how to route a single issue cluster to brands, regulators, insurers, and journalists simultaneously",
+    },
+    {
+        "type": "api_collaboration",
+        "submolt": "agents",
+        "topic": "How other agents can submit real-world issue reports via CleanApp's API — detect the signal, we handle routing and accountability",
+    },
+    {
+        "type": "api_collaboration",
+        "submolt": "general",
+        "topic": "The economics of sensor data coordination — why agents covering different geographic areas create superlinear value when their data is clustered",
+    },
+]
 
 
 class Agent:
@@ -52,6 +93,19 @@ class Agent:
             max_posts_per_day=config.max_posts_per_day,
             max_comments_per_day=config.max_comments_per_day,
             relevance_threshold=config.relevance_threshold,
+            post_cooldown_minutes=config.post_cooldown_minutes,
+            max_outreach_per_day=config.max_outreach_per_day,
+            outreach_cooldown_days=config.outreach_cooldown_days,
+            min_post_length=config.min_post_length,
+            max_post_length=config.max_post_length,
+            min_comment_length=config.min_comment_length,
+            max_comment_length=config.max_comment_length,
+        )
+        self.outreach = OutreachEngine(
+            client=self.client,
+            memory=self.memory,
+            policy=self.policy,
+            config=config,
         )
 
         # Initialize Gemini
@@ -77,6 +131,21 @@ class Agent:
         except Exception as e:
             logger.error("LLM call failed: %s", e)
             return ""
+
+    # --- Health check ---
+
+    def preflight(self) -> bool:
+        """Run health check before agent cycle. Returns True if OK to proceed."""
+        health = self.client.check_health()
+        if not health.ok:
+            logger.error("❌ Pre-flight failed: %s", health.message)
+            if health.suspended:
+                logger.error("Account suspended. Retry after ~%.1f hours.", health.retry_after_hours)
+            return False
+        logger.info("✅ Pre-flight OK: %s", health.message)
+        return True
+
+    # --- Relevance scoring ---
 
     def _score_relevance(self, post: MoltbookPost) -> dict[str, Any]:
         """Score a post for relevance using LLM."""
@@ -119,6 +188,8 @@ class Agent:
 
         return result
 
+    # --- Response generation ---
+
     def _generate_response(self, post: MoltbookPost, mode: str) -> str:
         """Generate a response for a post using the mode-specific prompt."""
         prompt_template = self.prompts.get(mode, "")
@@ -137,7 +208,161 @@ class Agent:
             logger.info("Response would be repetitive, skipping")
             return ""
 
+        # Validate comment length
+        if response:
+            valid, reason = self.policy.validate_comment_content(response)
+            if not valid:
+                logger.warning("Response failed validation: %s", reason)
+                return ""
+
+        # Check content dedup
+        if response and self.memory.is_duplicate_content("", response):
+            logger.warning("Response is duplicate content, skipping")
+            return ""
+
         return response
+
+    # --- Proactive posting ---
+
+    def create_value_post(self, topic_index: int | None = None) -> dict[str, Any]:
+        """Create an original value-first post.
+
+        If topic_index is provided, uses that specific topic.
+        Otherwise picks the first unused topic.
+        """
+        # Check daily post limit
+        can_post, reason = self.policy.can_post()
+        if not can_post:
+            return {"success": False, "reason": reason}
+
+        # Check cooldown
+        can_now, reason = self.policy.can_post_now()
+        if not can_now:
+            return {"success": False, "reason": reason}
+
+        # Select topic
+        if topic_index is not None:
+            if 0 <= topic_index < len(PROACTIVE_TOPICS):
+                topic = PROACTIVE_TOPICS[topic_index]
+            else:
+                return {"success": False, "reason": f"Invalid topic index: {topic_index}"}
+        else:
+            # Pick first unused topic
+            topic = None
+            for t in PROACTIVE_TOPICS:
+                # Check if we already posted to this submolt today
+                can_submolt, _ = self.policy.can_post_to_submolt(t["submolt"])
+                if can_submolt:
+                    topic = t
+                    break
+            if topic is None:
+                return {"success": False, "reason": "No unused topics available"}
+
+        # Check submolt limit
+        can_submolt, reason = self.policy.can_post_to_submolt(topic["submolt"])
+        if not can_submolt:
+            return {"success": False, "reason": reason}
+
+        # Generate post via LLM
+        prompt_template = self.prompts.get("original_post", "")
+        system_prompt = self.prompts.get("system", "")
+        if not prompt_template:
+            return {"success": False, "reason": "Missing original_post prompt template"}
+
+        prompt = f"{system_prompt}\n\n---\n\n{prompt_template.format(post_type=topic['type'], submolt=topic['submolt'])}\n\nTopic to write about: {topic['topic']}"
+
+        response = self._call_llm(prompt)
+        if not response:
+            return {"success": False, "reason": "LLM failed to generate post"}
+
+        # Parse TITLE: and CONTENT: from response
+        title = ""
+        content = ""
+        lines = response.split("\n")
+        in_content = False
+        content_lines = []
+
+        for line in lines:
+            if line.strip().startswith("TITLE:"):
+                title = line.split("TITLE:", 1)[1].strip()
+            elif line.strip().startswith("CONTENT:"):
+                content_start = line.split("CONTENT:", 1)[1].strip()
+                if content_start:
+                    content_lines.append(content_start)
+                in_content = True
+            elif in_content:
+                content_lines.append(line)
+
+        content = "\n".join(content_lines).strip()
+
+        if not title or not content:
+            # Fallback: use full response as content
+            if not title:
+                title = response.split("\n")[0][:100]
+            if not content:
+                content = response
+
+        # Validate
+        valid, reason = self.policy.validate_post_content(title, content)
+        if not valid:
+            return {"success": False, "reason": reason}
+
+        # Dedup check
+        if self.policy.is_duplicate(title, content):
+            return {"success": False, "reason": "Duplicate content detected"}
+
+        # Post
+        result = self.client.create_post(
+            submolt=topic["submolt"],
+            title=title,
+            content=content,
+        )
+
+        # Record
+        post_id = result.get("id", result.get("post_id", "proactive"))
+        self.memory.record_content_hash(title, content, post_id)
+        self.memory.record_engagement(
+            post_id=post_id, action="post", mode=topic["type"],
+            content=content, thread_title=title,
+            thread_submolt=topic["submolt"],
+        )
+
+        logger.info("✅ Created value post: '%s' in s/%s", title[:60], topic["submolt"])
+        return {"success": True, "title": title, "submolt": topic["submolt"], "result": result}
+
+    # --- Post a custom introduction ---
+
+    def post_introduction(self, title: str, content: str) -> dict[str, Any]:
+        """Post a one-time introduction to m/introductions with full compliance checks."""
+        submolt = "introductions"
+
+        # All pre-flight checks
+        checks = [
+            self.policy.can_post(),
+            self.policy.can_post_now(),
+            self.policy.can_post_to_submolt(submolt),
+            self.policy.validate_post_content(title, content),
+        ]
+        for ok, reason in checks:
+            if not ok:
+                return {"success": False, "reason": reason}
+
+        if self.policy.is_duplicate(title, content):
+            return {"success": False, "reason": "Duplicate content — already posted this"}
+
+        result = self.client.create_post(submolt=submolt, title=title, content=content)
+
+        post_id = result.get("id", result.get("post_id", "intro"))
+        self.memory.record_content_hash(title, content, post_id)
+        self.memory.record_engagement(
+            post_id=post_id, action="post", mode="introduction",
+            content=content, thread_title=title, thread_submolt=submolt,
+        )
+
+        logger.info("✅ Posted introduction: '%s'", title[:60])
+        return {"success": True, "title": title, "result": result}
+
+    # --- Search & engage (core loop) ---
 
     def _search_and_engage(self, mode: str, queries: list[str]) -> list[dict[str, Any]]:
         """Search for relevant threads and engage where valuable."""
@@ -223,13 +448,14 @@ class Agent:
                                 content=response_text, thread_title=post.title,
                                 thread_submolt=post.submolt, relevance_score=relevance,
                             )
+                            self.memory.record_content_hash("", response_text)
                             self.memory.record_opportunity(
                                 mode=mode, post_id=post.id, title=post.title,
                                 submolt=post.submolt, author=post.author,
                                 relevance_score=relevance, action_taken="engaged",
                             )
 
-                            # Respect comment cooldown
+                            # Respect API rate limits
                             time.sleep(2)
                         else:
                             opportunity["action"] = "skipped"
@@ -239,16 +465,27 @@ class Agent:
 
         return opportunities
 
+    # --- Full cycle ---
+
     def run_cycle(self) -> dict[str, Any]:
-        """Run one full engagement cycle across all modes."""
+        """Run one full engagement cycle: health check → engage → outreach → post."""
         logger.info("=" * 60)
         logger.info("Starting engagement cycle (dry_run=%s)", self.config.dry_run)
         logger.info("=" * 60)
 
+        # Pre-flight
+        if not self.preflight():
+            return {"cycle_complete": False, "reason": "Pre-flight failed (suspended or auth error)"}
+
         all_opportunities: dict[str, list] = {}
 
+        # Phase 1: Search & engage across modes
         for mode, queries in SEARCH_QUERIES.items():
-            mode_label = {"intake": "Intake (Trashformer)", "analysis": "Analysis (Moltfold)", "distribution": "Distribution (Antenna)"}[mode]
+            mode_label = {
+                "intake": "Intake (Trashformer)",
+                "analysis": "Analysis (Moltfold)",
+                "distribution": "Distribution (Antenna)",
+            }[mode]
             logger.info("-" * 40)
             logger.info("Mode: %s", mode_label)
             logger.info("-" * 40)
@@ -265,6 +502,26 @@ class Agent:
                 mode, engaged, skipped, queued, len(opportunities),
             )
 
+        # Phase 2: Proactive value post (if we have post budget left)
+        can_post, _ = self.policy.can_post()
+        proactive_result = None
+        if can_post:
+            logger.info("-" * 40)
+            logger.info("Proactive posting phase")
+            logger.info("-" * 40)
+            proactive_result = self.create_value_post()
+            if proactive_result.get("success"):
+                logger.info("Proactive post created: %s", proactive_result.get("title", "")[:60])
+            else:
+                logger.info("Proactive post skipped: %s", proactive_result.get("reason", ""))
+
+        # Phase 3: Outreach cycle
+        logger.info("-" * 40)
+        logger.info("Outreach phase")
+        logger.info("-" * 40)
+        outreach_actions = self.outreach.run_outreach_cycle(self._call_llm)
+        logger.info("Outreach actions: %d", len(outreach_actions))
+
         # Final summary
         posts_today, comments_today = self.memory.get_daily_counts()
         summary = {
@@ -273,6 +530,8 @@ class Agent:
             "daily_posts": posts_today,
             "daily_comments": comments_today,
             "opportunities": all_opportunities,
+            "proactive_post": proactive_result,
+            "outreach_actions": len(outreach_actions),
             "totals": {
                 mode: {
                     "found": len(opps),
@@ -285,9 +544,10 @@ class Agent:
         }
 
         logger.info("=" * 60)
-        logger.info("Cycle complete. Posts today: %d/%d, Comments today: %d/%d",
+        logger.info("Cycle complete. Posts today: %d/%d, Comments today: %d/%d, Outreach: %d",
                      posts_today, self.config.max_posts_per_day,
-                     comments_today, self.config.max_comments_per_day)
+                     comments_today, self.config.max_comments_per_day,
+                     len(outreach_actions))
         logger.info("=" * 60)
 
         return summary

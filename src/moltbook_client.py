@@ -14,6 +14,15 @@ MOLTBOOK_BASE = "https://www.moltbook.com/api/v1"
 
 
 @dataclass
+class HealthStatus:
+    """Result of a health check against Moltbook."""
+    ok: bool
+    message: str
+    suspended: bool = False
+    retry_after_hours: float = 0.0
+
+
+@dataclass
 class MoltbookPost:
     """A Moltbook post."""
     id: str
@@ -45,6 +54,7 @@ class MoltbookClient:
     def __init__(self, api_key: str, dry_run: bool = True):
         self.api_key = api_key
         self.dry_run = dry_run
+        self._healthy: bool | None = None  # cached health status
         self._client = httpx.Client(
             base_url=MOLTBOOK_BASE,
             headers={
@@ -62,10 +72,72 @@ class MoltbookClient:
             return resp.json()
         except httpx.HTTPStatusError as e:
             logger.error("Moltbook API error: %s %s -> %d", method, path, e.response.status_code)
-            return {"success": False, "error": str(e)}
+            # Try to extract JSON body for richer error info
+            try:
+                body = e.response.json()
+                return {"success": False, "error": str(e), **body}
+            except Exception:
+                return {"success": False, "error": str(e)}
         except httpx.RequestError as e:
             logger.error("Moltbook request failed: %s", e)
             return {"success": False, "error": str(e)}
+
+    # --- Health & Status ---
+
+    def check_health(self) -> HealthStatus:
+        """Check account health by calling /agents/me.
+
+        Detects suspensions, invalid keys, and other account issues.
+        """
+        data = self._request("GET", "/agents/me")
+
+        # Suspended?
+        if data.get("error") == "Account suspended":
+            hint = data.get("hint", "")
+            # Parse hours from hint like "Suspension ends in 18 hours."
+            hours = 0.0
+            if "ends in" in hint:
+                try:
+                    parts = hint.split("ends in")[1].strip().split()
+                    hours = float(parts[0])
+                except (IndexError, ValueError):
+                    hours = 24.0  # default fallback
+
+            logger.warning("Account SUSPENDED: %s", hint)
+            self._healthy = False
+            return HealthStatus(
+                ok=False,
+                message=hint or "Account suspended",
+                suspended=True,
+                retry_after_hours=hours,
+            )
+
+        # Auth failure?
+        if data.get("success") is False:
+            error = data.get("error", "Unknown error")
+            logger.error("Health check failed: %s", error)
+            self._healthy = False
+            return HealthStatus(ok=False, message=error)
+
+        # Success — we have a valid profile
+        agent_name = data.get("name", data.get("username", "unknown"))
+        logger.info("Health check OK — agent: %s", agent_name)
+        self._healthy = True
+        return HealthStatus(ok=True, message=f"Healthy (agent: {agent_name})")
+
+    def _preflight_write(self) -> dict[str, Any] | None:
+        """Run health check before any write operation.
+
+        Returns an error dict if we should not write, or None if OK.
+        """
+        if self._healthy is None:
+            self.check_health()
+
+        if self._healthy is False:
+            msg = "Skipping write — account not healthy (suspended or auth failure)"
+            logger.warning(msg)
+            return {"success": False, "error": msg, "skipped": True}
+        return None
 
     # --- Read operations (always allowed, even in dry-run) ---
 
@@ -110,13 +182,18 @@ class MoltbookClient:
         data = self._request("GET", f"/posts/{post_id}/comments", params={"sort": "top"})
         return data.get("data", data.get("comments", []))
 
-    # --- Write operations (guarded by dry-run) ---
+    # --- Write operations (guarded by dry-run + health check) ---
 
     def create_post(self, submolt: str, title: str, content: str) -> dict[str, Any]:
         """Create a post. In dry-run, logs instead of posting."""
         if self.dry_run:
             logger.info("[DRY-RUN] Would create post in s/%s: '%s'", submolt, title)
             return {"success": True, "dry_run": True, "submolt": submolt, "title": title}
+
+        # Pre-flight health check
+        block = self._preflight_write()
+        if block:
+            return block
 
         return self._request("POST", "/posts", json={
             "submolt": submolt,
@@ -129,6 +206,11 @@ class MoltbookClient:
         if self.dry_run:
             logger.info("[DRY-RUN] Would comment on post %s: '%s'", post_id, content[:80])
             return {"success": True, "dry_run": True, "post_id": post_id}
+
+        # Pre-flight health check
+        block = self._preflight_write()
+        if block:
+            return block
 
         payload: dict[str, Any] = {"content": content}
         if parent_id:

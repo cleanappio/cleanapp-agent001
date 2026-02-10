@@ -21,10 +21,21 @@ class Config:
     dry_run: bool = True
     log_level: str = "INFO"
 
-    # Rate limits (self-imposed)
+    # Rate limits — engagement
     max_posts_per_day: int = 3
     max_comments_per_day: int = 5
     relevance_threshold: float = 0.6
+
+    # Rate limits — compliance
+    post_cooldown_minutes: int = 30  # Moltbook enforces 1 post per 30 min
+    max_outreach_per_day: int = 2
+    outreach_cooldown_days: int = 7  # Don't re-approach an agent within 7 days
+
+    # Content constraints
+    min_post_length: int = 50
+    max_post_length: int = 2000
+    min_comment_length: int = 20
+    max_comment_length: int = 500
 
     # Paths
     data_dir: Path = Path("./data")
@@ -46,6 +57,9 @@ class Config:
             max_posts_per_day=int(os.getenv("MAX_POSTS_PER_DAY", "3")),
             max_comments_per_day=int(os.getenv("MAX_COMMENTS_PER_DAY", "5")),
             relevance_threshold=float(os.getenv("RELEVANCE_THRESHOLD", "0.6")),
+            post_cooldown_minutes=int(os.getenv("POST_COOLDOWN_MINUTES", "30")),
+            max_outreach_per_day=int(os.getenv("MAX_OUTREACH_PER_DAY", "2")),
+            outreach_cooldown_days=int(os.getenv("OUTREACH_COOLDOWN_DAYS", "7")),
             data_dir=data_dir,
         )
 

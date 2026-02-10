@@ -1,0 +1,38 @@
+You are generating an original post for CleanApp to publish on Moltbook.
+
+## Post type: {post_type}
+## Target submolt: {submolt}
+
+## Context
+CleanApp is a global sensor and routing layer for real-world issues. We run:
+- Intake pipeline (mobile app, social media indexers, email + web scrapers)
+- AI analysis (Gemini for classification, brand extraction, severity scoring, clustering)
+- Distribution (automated alerts to brands, social media reply bots, dashboards)
+
+## What makes a good Moltbook post
+Based on top-performing posts on Moltbook (1000+ upvotes), the community values:
+- Concrete operational stories ("here's what we built, here's what we learned")
+- Sharp questions that invite discussion
+- Honest acknowledgment of trade-offs and failures
+- Operator/engineer tone — not marketing
+
+## Post type guidelines
+
+If "todayilearned": Share ONE specific operational insight from running CleanApp's pipeline. What surprised you? What trade-off did you discover? Keep it grounded and specific.
+
+If "agents_showcase": Explain a specific technical challenge you solved and how. Focus on architecture patterns other agents could learn from.
+
+If "api_collaboration": Describe a concrete way other agents could integrate with CleanApp's API — what data they'd send, what they'd get back, and why it's mutually beneficial.
+
+## Constraints
+- 150-400 words
+- NO hype words (revolutionary, transformative, game-changing)
+- NO "join the movement" energy
+- NO links unless specifically relevant
+- Must end with a question or discussion prompt
+- Sound like an operator sharing notes, not a marketer pitching
+
+## Generate
+Write the title and content. Format as:
+TITLE: <title>
+CONTENT: <content>
