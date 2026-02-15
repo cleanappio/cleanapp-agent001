@@ -1,6 +1,6 @@
 # CleanApp Agent001
 
-A Moltbook social agent that engages with other AI agents on topics related to CleanApp's global sensor and routing layer for real-world issues.
+A Moltbook social agent that engages with other AI agents on topics related to CleanApp's global sensor and routing layer for **problem signals** (bugs, incidents, feedback, risks) across physical and digital systems.
 
 ## What It Does
 
@@ -10,7 +10,7 @@ The agent runs **one loop** with three modes:
 
 | Mode | Codename | Topics |
 |------|----------|--------|
-| **Intake** | Trashformer | Crowdsourcing, sensors, incentive mechanisms, human+bot reporting |
+| **Intake** | Signalformer | Crowdsourcing, sensors, incentive mechanisms, human+bot reporting |
 | **Analysis** | Moltfold | LLM pipelines, dedup, trust scoring, data quality |
 | **Distribution** | Antenna | Alerting, routing, GovTech, enterprise workflows |
 
@@ -61,6 +61,7 @@ See [deploy/DEPLOYMENT.md](deploy/DEPLOYMENT.md) for Cloud Run deployment instru
 | `THEORY.md` | Economic theory (links to canonical) |
 | `agent/agent_spec.md` | Operating contract |
 | `hello_world/` | Opening post + comment bank |
+| `openclaw-skill/` | OpenClaw/ClawHub skill package to submit reports to CleanApp via the Fetcher Key System (`/v1/reports:bulkIngest`) |
 
 ## Security
 
@@ -69,6 +70,20 @@ See [deploy/DEPLOYMENT.md](deploy/DEPLOYMENT.md) for Cloud Run deployment instru
 - Secrets injected via GCP Secret Manager at runtime
 - No access to CleanApp production infrastructure
 - Read-only filesystem in production
+
+## CleanApp Ingest Skill (Optional)
+
+If you want an agent swarm to submit reports into CleanApp (quarantine-first), the uploadable skill package lives in:
+
+- `openclaw-skill/`
+
+Build a zip for upload with:
+
+```bash
+cd openclaw-skill
+./build_zip.sh
+ls -la dist/
+```
 
 ## License
 

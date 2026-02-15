@@ -1,97 +1,109 @@
-# CleanApp Bulk Ingest API Reference
+# CleanApp Ingest API Reference (v1)
 
-## Endpoint
+This skill targets the **Fetcher Key System** (quarantine-first ingest surface) for submitting **problem signals** (bugs/incidents/feedback) into CleanApp.
 
-```
-POST /api/v3/reports/bulk_ingest
-```
+## Docs / OpenAPI
 
-**Base URL**: `https://reports.cleanapp.io`
+- Swagger UI: `https://live.cleanapp.io/v1/docs`
+- OpenAPI YAML: `https://live.cleanapp.io/v1/openapi.yaml`
 
-## Authentication
-
-Bearer token in the `Authorization` header:
+## 1) Register a Fetcher (one-time API key issuance)
 
 ```
-Authorization: Bearer <your_token>
+POST /v1/fetchers/register
 ```
 
-Tokens are provisioned per-fetcher and validated against the `fetchers` table (SHA-256 hashed).
+**Base URL**: `https://live.cleanapp.io`
 
-## Request Schema
+This returns:
+- `fetcher_id`
+- `api_key` (**shown once**; never stored plaintext server-side)
+
+Example:
+
+```bash
+curl -fsS -H 'content-type: application/json' \\
+  -d '{"name":"cleanapp-agent001","owner_type":"openclaw"}' \\
+  https://live.cleanapp.io/v1/fetchers/register
+```
+
+Store `api_key` as a secret env var: `CLEANAPP_API_TOKEN`.
+
+## 2) Bulk Ingest (quarantine lane)
+
+```
+POST /v1/reports:bulkIngest
+Authorization: Bearer <api_key>
+```
+
+### Request schema
 
 ```json
 {
-  "source": "openclaw_agent",
   "items": [
     {
-      "external_id": "string (required, unique per source)",
-      "title": "string (required, max 500 chars)",
-      "content": "string (required, max 16,000 chars)",
-      "url": "string (optional, max 500 chars)",
-      "created_at": "ISO 8601 timestamp (optional)",
-      "updated_at": "ISO 8601 timestamp (optional)",
-      "score": "float 0.0-1.0 (optional, confidence score)",
-      "tags": ["string array (optional)"],
-      "skip_ai": "boolean (optional, skip AI analysis)",
-      "image_base64": "string (optional, base64-encoded image)",
-      "metadata": {
-        "latitude": "float (optional)",
-        "longitude": "float (optional)",
-        "classification": "\"physical\" or \"digital\" (optional, default: digital)",
-        "severity_level": "float 0.0-1.0 (optional)",
-        "litter_probability": "float 0.0-1.0 (optional)",
-        "hazard_probability": "float 0.0-1.0 (optional)",
-        "digital_bug_probability": "float 0.0-1.0 (optional)",
-        "brand_name": "string (optional)",
-        "language": "ISO 639-1 code (optional, default: en)",
-        "summary": "string (optional, custom summary)",
-        "inferred_contact_emails": ["string array (optional)"],
-        "needs_ai_review": "boolean (optional)",
-        "skip_side_effects": "boolean (optional, skip RabbitMQ)",
-        "bulk_mode": "boolean (optional, skip side effects + AI review)"
-      }
+      "source_id": "string (required; idempotency key unique per fetcher)",
+      "title": "string (optional)",
+      "description": "string (optional)",
+      "lat": 47.36,
+      "lng": 8.55,
+      "collected_at": "2026-02-14T00:00:00Z",
+      "agent_id": "cleanapp-agent001",
+      "agent_version": "1.0",
+      "source_type": "text|vision|sensor|web",
+      "media": [{ "url": "...", "sha256": "...", "content_type": "image/jpeg" }]
     }
   ]
 }
 ```
 
-## Limits
+### Limits / semantics
 
-- Max **1000 items** per request
-- Title truncated to 500 runes
-- Content truncated to 16,000 runes
-- URL truncated to 500 runes
-- Duplicate `external_id` + `source` combinations are silently skipped
+- Max **100 items** per request
+- **Idempotency**: `source_id` is required. Duplicate `source_id` for the same fetcher returns `status=duplicate`.
+- **Quarantine-first**: new fetchers default to `visibility=shadow`, `trust_level=unverified`.
+  - Stored + analyzed.
+  - Not publicly published / routed / rewarded unless promoted.
 
-## Response Schema
+### Response schema (per-item results)
 
 ```json
 {
-  "inserted": 5,
-  "updated": 0,
-  "skipped": 2,
-  "errors": [
-    { "i": 3, "reason": "missing external_id" }
+  "submitted": 1,
+  "accepted": 1,
+  "duplicates": 0,
+  "rejected": 0,
+  "items": [
+    {
+      "source_id": "abc",
+      "status": "accepted|duplicate|rejected",
+      "report_seq": 1148625,
+      "queued": true,
+      "visibility": "shadow|limited|public",
+      "trust_level": "unverified|verified|trusted",
+      "reason": "string (if rejected)"
+    }
   ]
 }
 ```
 
-## Error Codes
+## 3) Fetcher Introspection
 
-| HTTP | Meaning |
-|------|---------|
-| 200 | Success (check `inserted` / `skipped` counts) |
-| 400 | Invalid JSON, missing `source`/`items`, or >1000 items |
-| 401 | Missing or invalid Bearer token |
-| 500 | Database or internal error |
+```
+GET /v1/fetchers/me
+Authorization: Bearer <api_key>
+```
 
-## What Happens After Ingestion
+Returns:
+- tier/status/reputation
+- caps + usage
+- defaults (`default_visibility`, `default_trust_level`, `routing_enabled`, `rewards_enabled`)
 
-1. Report inserted into `reports` table with auto-incremented `seq`
-2. Analysis record created in `report_analysis` table
-3. External ingest index updated for deduplication
-4. Report details (company, product, URL) stored
-5. If not in fast-path mode: report published to RabbitMQ for real-time rendering
-6. AI analysis pipeline picks up reports for enrichment (brand extraction, severity scoring, clustering)
-7. Distribution pipeline routes alerts to responsible parties
+## 4) Promotion Request (out of quarantine)
+
+```
+POST /v1/fetchers/promotion-request
+GET  /v1/fetchers/promotion-status
+```
+
+Promotion is **reviewed**. It can raise caps, enable routing/rewards, and/or change defaults to publish publicly.

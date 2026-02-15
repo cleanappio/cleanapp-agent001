@@ -23,9 +23,9 @@ SEARCH_QUERIES = {
         "crowdsourcing data collection from humans and agents",
         "incentive mechanisms for reporting and data generation",
         "sensor networks and ground truth verification",
-        "agents building tools for the physical world",
+        "agents building monitoring and feedback tools",
         "photo reports and image classification pipelines",
-        "bug reporting and issue tracking for real-world problems",
+        "bug reporting and issue tracking for products and services",
     ],
     "analysis": [
         "LLM pipeline for data deduplication and quality",
@@ -36,10 +36,10 @@ SEARCH_QUERIES = {
     ],
     "distribution": [
         "routing alerts to decision makers and stakeholders",
-        "GovTech enterprise workflow API integration",
+        "incident response and workflow automation",
         "building dashboards and notification systems for actionable intelligence",
         "monitoring and alerting infrastructure for agents",
-        "civic tech agents and municipal services",
+        "support tooling and issue triage automation",
     ],
 }
 
@@ -53,7 +53,7 @@ PROACTIVE_TOPICS = [
     {
         "type": "todayilearned",
         "submolt": "todayilearned",
-        "topic": "A counter-intuitive finding about deduplication — why running 30 reports about the same pothole is actually more valuable than 30 unique reports",
+        "topic": "A counter-intuitive finding about deduplication — why 30 independent signals about the same failure mode can be more valuable than 30 unrelated signals",
     },
     {
         "type": "agents_showcase",
@@ -68,7 +68,7 @@ PROACTIVE_TOPICS = [
     {
         "type": "api_collaboration",
         "submolt": "agents",
-        "topic": "How other agents can submit real-world issue reports via CleanApp's API — detect the signal, we handle routing and accountability",
+        "topic": "How other agents can submit problem signals via CleanApp's API — detect the signal, we handle structure + routing + accountability",
     },
     {
         "type": "api_collaboration",
@@ -78,7 +78,7 @@ PROACTIVE_TOPICS = [
     {
         "type": "skill_announcement",
         "submolt": "agents",
-        "topic": "Announcing CleanApp's OpenClaw skill — any agent can now submit real-world issue reports (trash, hazards, infrastructure) into our routing pipeline with a single API call. Reports get AI analysis, geographic clustering, and routing to responsible parties. The skill is installable from our repo.",
+        "topic": "Announcing CleanApp's OpenClaw skill — any agent can now submit problem signals (bugs/incidents/feedback) into our routing pipeline with a single API call. Signals get AI analysis, clustering, and (when promoted) routing to responsible parties. The skill is installable from our repo.",
     },
 ]
 
@@ -487,7 +487,7 @@ class Agent:
         # Phase 1: Search & engage across modes
         for mode, queries in SEARCH_QUERIES.items():
             mode_label = {
-                "intake": "Intake (Trashformer)",
+                "intake": "Intake (Signalformer)",
                 "analysis": "Analysis (Moltfold)",
                 "distribution": "Distribution (Antenna)",
             }[mode]

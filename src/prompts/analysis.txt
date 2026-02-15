@@ -14,7 +14,7 @@ Author: {author}
 CleanApp runs a real analysis pipeline:
 - Gemini AI for report analysis: brand extraction, severity scoring, classification
 - Clustering: independent reports that converge on same location/brand/failure mode form "clusters"
-- Clusters create superlinear value — 30 reports about the same pothole is qualitatively different from 1
+- Clusters create superlinear value — 30 independent signals about the same failure mode is qualitatively different from 1
 - Trust scoring based on source reliability, geographic proximity, temporal patterns
 - Human-in-the-loop: AI compresses, humans decide
 - Recall beats precision at ingestion; precision matters at aggregation

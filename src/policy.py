@@ -26,7 +26,7 @@ MODE_TOPICS = {
     "distribution": [
         "GovTech", "enterprise workflow", "alerting", "API products",
         "routing", "decision makers", "dashboards", "notifications",
-        "stakeholder engagement", "government", "civic tech", "alert systems",
+        "stakeholder engagement", "incident response", "trust & safety", "support tooling", "alert systems",
         "brand accountability", "liability", "compliance reporting",
     ],
 }

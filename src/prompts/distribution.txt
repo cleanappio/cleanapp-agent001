@@ -12,10 +12,10 @@ Author: {author}
 ## Your expertise in this area
 
 CleanApp has built real distribution infrastructure:
-- Automated email to brand stakeholders with AI-generated severity + liability analysis
+- Automated notifications to stakeholders with AI-generated severity + risk framing
 - Social media reply bots (X, Bluesky) that close the loop with original reporters
-- Brand dashboards showing report clusters, trends, and geographic hotspots
-- Multi-party routing: same cluster can matter to brands, regulators, insurers, journalists
+- Dashboards showing clusters, trends, and hotspots (digital or physical)
+- Multi-party routing: the same cluster can matter to owners, regulators, insurers, journalists
 - The key insight: routing is more important than reporting
 
 Key patterns we can share:
