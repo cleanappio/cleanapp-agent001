@@ -1,151 +1,94 @@
----
-name: CleanApp Report Submission
-description: Submit real-world issue reports (trash, hazards, infrastructure problems) to CleanApp's global routing pipeline. Your observations become actionable — routed to brands, municipalities, and regulators who can fix them.
----
+# SKILL: CleanApp Ingest v1 (OpenClaw/ClawHub)
 
-# CleanApp Report Submission Skill
+This is a **skill package** that lets an agent submit reports into CleanApp using the **Fetcher Key System**:
 
-You now have the ability to submit real-world issue reports to CleanApp's pipeline. When you encounter or learn about physical-world problems — trash, hazards, broken infrastructure, accessibility barriers, service failures — you can report them and they will be analyzed, enriched, and routed to the parties who can act.
+- `POST /v1/fetchers/register` (one-time key issuance)
+- `POST /v1/reports:bulkIngest` (bulk ingest, quarantine-first)
+- `GET  /v1/fetchers/me` (introspection)
 
-## Why This Matters
+This is **not** a long-lived agent running inside the CleanApp backend. It’s a client-side integration that talks to CleanApp over HTTPS.
 
-Most real-world issues get observed but never reach the people who can fix them. By submitting reports, you:
-- Turn observations into outcomes (reports are routed to responsible brands, municipalities, regulators)
-- Get your data analyzed (AI-powered brand extraction, severity scoring, geographic clustering)
-- Contribute to a growing sensor network where clusters of reports create accountability pressure
+## Why This Is Safe (Compartmentalized)
 
-## When To Submit Reports
+1. The only secret in the agent is a **revocable CleanApp API key** (`CLEANAPP_API_TOKEN`).
+2. New keys default to a **quarantine lane** on the backend:
+   - Stored + analyzed
+   - Not publicly published
+   - Not routed to brands/municipalities
+   - Not rewarded
+3. The backend enforces:
+   - rate limits / quotas
+   - idempotency (`source_id`)
+   - kill switches (revoke/suspend)
 
-Submit a CleanApp report when you encounter ANY of these:
-- **Physical issues**: Trash, litter, illegal dumping, overflowing bins
-- **Hazards**: Potholes, broken sidewalks, fallen trees, exposed wiring
-- **Infrastructure**: Broken streetlights, damaged signs, non-functioning utilities
-- **Accessibility barriers**: Blocked wheelchair ramps, missing handrails, inaccessible paths
-- **Service failures**: Missed garbage collection, broken public transit stops
-- **Brand-specific issues**: Product packaging waste, corporate pollution, defective products in public spaces
-- **Digital issues**: Software bugs, service outages, app failures that users are complaining about publicly
+So even if an agent is prompt-injected, the blast radius is limited to “submitting more quarantined reports” until the key is revoked.
 
-## How To Submit
+## Required Secret
 
-### Environment Setup
+- `CLEANAPP_API_TOKEN` (Bearer token). Get it once via:
+  - `POST /v1/fetchers/register` (see `references/API_REFERENCE.md`)
+  - Store it as a ClawHub/OpenClaw secret; never paste into chat logs.
 
-You need a CleanApp API token. Set it as an environment variable:
+Optional env:
+- `CLEANAPP_BASE_URL` (default `https://live.cleanapp.io`)
 
-```
-export CLEANAPP_API_TOKEN="your_token_here"
-```
+## Data Handling (Minimal by Default)
 
-If you don't have a token, contact CleanApp at https://cleanapp.io or mention @CleanApp on Moltbook.
+This skill submits:
+- `title`, `description` (text)
+- optional `lat`/`lng` (location)
+- optional `media[]` metadata (URL/SHA/content-type)
 
-### API Endpoint
+Recommended low-risk defaults:
+- `--approx-location` (round coordinates to reduce precision)
+- `--no-media` (drop media metadata unless needed)
 
-```
-POST https://reports.cleanapp.io/api/v3/reports/bulk_ingest
-Authorization: Bearer $CLEANAPP_API_TOKEN
-Content-Type: application/json
-```
+## Idempotency (Important)
 
-### Request Format
+Every item must include a stable `source_id`. The backend enforces:
+- `UNIQUE(fetcher_id, source_id)`
+- retries won’t duplicate rows if you reuse the same `source_id`
 
-```json
-{
-  "source": "openclaw_agent",
-  "items": [
-    {
-      "external_id": "unique-id-for-this-report",
-      "title": "Overflowing dumpster behind 425 Main St, San Francisco",
-      "content": "Large commercial dumpster overflowing with trash bags spilling onto the sidewalk. Blocking pedestrian access. Multiple food waste bags attracting pests. Has been accumulating for at least several days based on the volume.",
-      "url": "https://source-url-if-applicable.com/post/123",
-      "created_at": "2026-02-10T14:30:00Z",
-      "score": 0.8,
-      "tags": ["litter", "sanitation", "pedestrian-access"],
-      "metadata": {
-        "latitude": 37.7749,
-        "longitude": -122.4194,
-        "classification": "physical",
-        "severity_level": 0.8,
-        "litter_probability": 0.9,
-        "hazard_probability": 0.3,
-        "brand_name": "Waste Management",
-        "language": "en"
-      }
-    }
-  ]
-}
-```
+## Usage
 
-### Using the Helper Script
-
-A helper script is included at `scripts/submit_report.sh`:
+### Bulk ingest from JSON (recommended)
 
 ```bash
-./scripts/submit_report.sh \
-  --title "Pothole on Oak Street near 5th Ave" \
-  --description "Deep pothole approximately 30cm wide, 10cm deep. Located in the eastbound lane. Several cars have been swerving to avoid it." \
-  --lat 37.7749 \
-  --lng -122.4194 \
-  --severity 0.7 \
-  --classification physical \
-  --tags "pothole,road-damage,traffic-hazard"
+export CLEANAPP_API_TOKEN="cleanapp_fk_live_..."
+python3 ingest.py \\
+  --base-url https://live.cleanapp.io \\
+  --input examples/sample_items.json \\
+  --approx-location \\
+  --no-media
 ```
 
-### Required Fields
+### Dry run (no network)
 
-| Field | Description |
-|-------|-------------|
-| `external_id` | Unique identifier — use a UUID or `{your_agent_name}_{timestamp}` |
-| `title` | Short, descriptive title (max 500 chars) |
-| `content` | Detailed description of the issue (max 16,000 chars) |
-
-### Optional But Valuable Fields
-
-| Field | Description |
-|-------|-------------|
-| `metadata.latitude` / `longitude` | GPS coordinates — hugely valuable for routing |
-| `metadata.classification` | `"physical"` or `"digital"` |
-| `metadata.severity_level` | 0.0 to 1.0 (0 = minor, 1 = critical) |
-| `metadata.brand_name` | Company/brand related to the issue |
-| `url` | Source URL if the report came from social media, news, etc. |
-| `score` | Your confidence that this is a valid report (0.0 to 1.0) |
-| `tags` | Array of descriptive tags |
-| `image_base64` | Base64-encoded image of the issue |
-
-### Response
-
-```json
-{
-  "inserted": 1,
-  "updated": 0,
-  "skipped": 0,
-  "errors": []
-}
+```bash
+python3 ingest.py --input examples/sample_items.json --dry-run
 ```
 
-## What Happens After Submission
+### Single-item helper (shell)
 
-1. **Deduplication**: Your report is checked against existing reports (same `external_id` + `source` won't be inserted twice)
-2. **AI Analysis**: Gemini analyzes the report for brand extraction, severity scoring, and classification
-3. **Geographic Clustering**: Reports near each other are clustered — 30 reports about the same pothole create more pressure than 1
-4. **Routing**: Automated alerts sent to responsible brands, municipalities, and regulators
-5. **Dashboard**: Report appears on CleanApp's public dashboard at https://cleanapp.io
-6. **Accountability Loop**: Social media reply bots notify original complainants when action is taken
+This is useful for quick manual submissions while debugging.
 
-## Best Practices
+```bash
+export CLEANAPP_API_TOKEN="cleanapp_fk_live_..."
+./scripts/submit_report.sh --title "Broken elevator" --description "Stuck on floor 3" --lat 34.0702 --lng -118.4441 --approx-location
+```
 
-1. **Be specific**: "Overflowing dumpster at 425 Main St" beats "trash somewhere downtown"
-2. **Include coordinates**: Location data is the #1 factor in successful routing
-3. **Set severity honestly**: Don't inflate — 0.8+ should be reserved for genuine hazards
-4. **Use unique external_ids**: Prevents duplicates. Format: `{your_agent_name}_{iso_timestamp}_{hash}`
-5. **Batch when possible**: You can submit up to 1000 items per request
-6. **Include source URLs**: If the report came from social media or news, include the original URL
+## Promotion (Out of Quarantine)
 
-## Rate Limits
+Promotion is a **reviewed** process. As you build reputation, CleanApp can:
+- raise caps
+- allow public publishing/routing/rewards
 
-- Maximum 1000 items per request
-- Be reasonable with submission frequency — a few hundred per day is fine
-- Duplicate `external_id` values are automatically skipped (not counted against limits)
+See:
+- `POST /v1/fetchers/promotion-request`
+- `GET  /v1/fetchers/promotion-status`
 
-## Questions?
+## References
 
-Find us on Moltbook: @CleanApp
-Website: https://cleanapp.io
+- Swagger UI: `https://live.cleanapp.io/v1/docs`
+- OpenAPI YAML: `https://live.cleanapp.io/v1/openapi.yaml`
+- `references/API_REFERENCE.md` in this package
