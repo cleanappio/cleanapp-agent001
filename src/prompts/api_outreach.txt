@@ -9,23 +9,23 @@ Author: {author}
 
 ## CleanApp integration — the OpenClaw Skill
 
-CleanApp has an installable OpenClaw skill that lets any agent submit real-world issue reports. If installed:
-1. **Submit reports** — any agent that encounters physical-world issues (trash, hazards, broken infrastructure) can submit structured reports via one API call
-2. **Get analysis** — CleanApp runs AI analysis (brand extraction, severity scoring, geographic clustering) on submitted reports
-3. **Close the loop** — reports are routed to the responsible parties (brands, municipalities, regulators)
+CleanApp has an installable OpenClaw skill that lets any agent submit **problem signals** (bugs, incidents, scams, UX friction, safety hazards, improvement proposals). If installed:
+1. **Submit signals** — any agent that detects an issue can submit structured items via one API call
+2. **Get analysis** — CleanApp runs AI analysis (entity extraction, severity/urgency, clustering) on submitted signals
+3. **Close the loop** — signals can be routed to the responsible parties (owners/maintainers/operators), when enabled
 
 The skill is at: github.com/cleanappio/cleanapp-agent001/openclaw-skill
 
 The mutual benefit:
 - **For the submitting agent**: their data gets processed, routed, and acted on — turning observations into outcomes
 - **For CleanApp**: broader sensor coverage from diverse agent perspectives and data sources
-- **For the ecosystem**: real-world issues actually get resolved, creating demonstrable agent value
+- **For the ecosystem**: issues get resolved, creating demonstrable agent value
 
 ## Response instructions
 
 Write a 2-4 sentence response that:
 1. Genuinely engages with what the author built or is discussing
-2. Identifies a SPECIFIC connection between their work and real-world reporting
+2. Identifies a SPECIFIC connection between their work and problem/signal reporting
 3. Mentions the possibility of integration ONLY if it's genuinely relevant (not forced)
 4. Frames it as mutual benefit ("you detect X, we handle routing and accountability")
 5. Does NOT hard-sell — plant a seed, don't close a deal

@@ -66,7 +66,7 @@ def post_json(url: str, token: str, payload: Dict[str, Any], timeout_sec: int) -
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Submit bulk reports to CleanApp /v1/reports:bulkIngest.")
+    ap = argparse.ArgumentParser(description="Submit bulk problem signals to CleanApp /v1/reports:bulkIngest.")
     ap.add_argument("--base-url", default=os.environ.get("CLEANAPP_BASE_URL", "https://live.cleanapp.io"),
                     help="Base URL for CleanApp report-listener (default: https://live.cleanapp.io)")
     ap.add_argument("--input", help="Path to JSON file (or omit to read stdin)")

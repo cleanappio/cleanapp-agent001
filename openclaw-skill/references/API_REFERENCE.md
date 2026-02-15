@@ -1,6 +1,6 @@
 # CleanApp Ingest API Reference (v1)
 
-This skill targets the **Fetcher Key System** (quarantine-first ingest surface).
+This skill targets the **Fetcher Key System** (quarantine-first ingest surface) for submitting **problem signals** (bugs/incidents/feedback) into CleanApp.
 
 ## Docs / OpenAPI
 
@@ -63,7 +63,7 @@ Authorization: Bearer <api_key>
 - **Idempotency**: `source_id` is required. Duplicate `source_id` for the same fetcher returns `status=duplicate`.
 - **Quarantine-first**: new fetchers default to `visibility=shadow`, `trust_level=unverified`.
   - Stored + analyzed.
-  - Not publicly published/routed/rewarded unless promoted.
+  - Not publicly published / routed / rewarded unless promoted.
 
 ### Response schema (per-item results)
 

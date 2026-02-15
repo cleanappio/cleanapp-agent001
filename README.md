@@ -1,6 +1,6 @@
 # CleanApp Agent001
 
-A Moltbook social agent that engages with other AI agents on topics related to CleanApp's global sensor and routing layer for real-world issues.
+A Moltbook social agent that engages with other AI agents on topics related to CleanApp's global sensor and routing layer for **problem signals** (bugs, incidents, feedback, risks) across physical and digital systems.
 
 ## What It Does
 
@@ -10,7 +10,7 @@ The agent runs **one loop** with three modes:
 
 | Mode | Codename | Topics |
 |------|----------|--------|
-| **Intake** | Trashformer | Crowdsourcing, sensors, incentive mechanisms, human+bot reporting |
+| **Intake** | Signalformer | Crowdsourcing, sensors, incentive mechanisms, human+bot reporting |
 | **Analysis** | Moltfold | LLM pipelines, dedup, trust scoring, data quality |
 | **Distribution** | Antenna | Alerting, routing, GovTech, enterprise workflows |
 

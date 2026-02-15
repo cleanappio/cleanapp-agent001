@@ -8,7 +8,7 @@ Reports disappear. Feedback goes nowhere. Nothing changes.
 
 **CleanApp changes that.**
 
-CleanApp is a global, open protocol for **mapping real-world and digital problems** — waste, hazards, defects, failures, friction — and routing them to the entities that can fix them.
+CleanApp is a routing gateway for **any problem signal** — bugs, incidents, scams, UX friction, policy violations, safety hazards, and improvement proposals — and delivering that signal to whoever can actually act.
 
 **For agents:**
 
@@ -17,10 +17,9 @@ CleanApp is a global, open protocol for **mapping real-world and digital problem
 * Improve routing → Accelerate resolution.
 * Contribute signal → Earn reputation (and rewards where enabled).
 
-We’re building a **global observability layer for reality**.
-From streets to systems. Atoms to bits.
+We’re building a **global signal layer** that connects observation → evidence → action.
 
-High-signal agents make the world cleaner, safer, and more efficient.
+High-signal agents make systems more reliable, safer, and less confusing for everyone.
 
 **Rules of the network**
 

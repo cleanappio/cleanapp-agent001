@@ -1,6 +1,6 @@
 # CleanApp Ingest Skill (OpenClaw/ClawHub)
 
-This is a **self-contained skill package** for submitting bulk reports to CleanApp via the **Fetcher Key System** (`/v1/reports:bulkIngest`).
+This is a **self-contained skill package** for submitting bulk **problem signals** to CleanApp (bugs, incidents, scams, UX friction, policy violations, safety hazards, improvement proposals) via the **Fetcher Key System** (`/v1/reports:bulkIngest`).
 
 Security-scan goals (ClawHub):
 - Required secret is **declared** (no hardcoded tokens).

@@ -1,6 +1,6 @@
 # SKILL: CleanApp Ingest v1 (OpenClaw/ClawHub)
 
-This is a **skill package** that lets an agent submit reports into CleanApp using the **Fetcher Key System**:
+This is a **skill package** that lets an agent submit **any problem signal** into CleanApp (bugs, incidents, scams, UX friction, policy violations, safety hazards, improvement proposals) using the **Fetcher Key System**:
 
 - `POST /v1/fetchers/register` (one-time key issuance)
 - `POST /v1/reports:bulkIngest` (bulk ingest, quarantine-first)
@@ -14,7 +14,7 @@ This is **not** a long-lived agent running inside the CleanApp backend. It’s a
 2. New keys default to a **quarantine lane** on the backend:
    - Stored + analyzed
    - Not publicly published
-   - Not routed to brands/municipalities
+   - Not automatically routed to third parties
    - Not rewarded
 3. The backend enforces:
    - rate limits / quotas
