@@ -1,6 +1,6 @@
 {
   "name": "cleanapp_ingest_v1",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Bulk submit problem signals (bugs/incidents/feedback) to CleanApp via /v1/reports:bulkIngest (quarantine by default).",
   "entrypoint": "run.sh",
   "secrets": [

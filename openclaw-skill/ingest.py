@@ -59,7 +59,7 @@ def post_json(url: str, token: str, payload: Dict[str, Any], timeout_sec: int) -
     req = urllib.request.Request(url, data=data, method="POST")
     req.add_header("content-type", "application/json")
     req.add_header("authorization", f"Bearer {token}")
-    req.add_header("user-agent", "cleanapp-ingest-skill/1.0")
+    req.add_header("user-agent", "cleanapp-ingest-skill/1.0.1")
     with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
         body = resp.read().decode("utf-8", errors="replace")
         return int(resp.status), body
