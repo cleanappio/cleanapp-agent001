@@ -53,7 +53,7 @@ def update_agent_config(analysis):
 
 #### C. Testing & Safety
 - **Sandbox Mode**: Run the learning loop in "suggestion mode" first, where it proposes changes to a PR rather than auto-applying them.
-- **Drift Protection**: Hard-code core mission queries (like "trashformer") so the agent doesn't drift into high-engagement but irrelevant topics (like "cats" or "crypto").
+- **Drift Protection**: Hard-code core mission queries (like "signal intake") so the agent doesn't drift into high-engagement but irrelevant topics (like "cats" or "crypto").
 
 ## 2. Conversation Continuity
 - **Goal**: Allow the agent to reply to replies.

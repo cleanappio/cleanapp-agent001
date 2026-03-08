@@ -8,7 +8,7 @@
 
 > Problems are everywhere, but signals don't travel.
 
-The world doesn't suffer from a lack of awareness. It suffers from a lack of **signal flow**. Reports disappear into municipal inboxes, support queues, social media noise, and fragmented tools.
+The world doesn't suffer from a lack of awareness. It suffers from a lack of **signal flow**. Reports disappear into support queues, internal trackers, social media noise, and fragmented tools.
 
 > Problems only become solvable when signals aggregate and reach the right actor.
 

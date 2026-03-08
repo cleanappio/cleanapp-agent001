@@ -68,6 +68,8 @@ def main():
     if result.get("success", False) or config.dry_run:
         logger.info("Success! Response:")
         logger.info(result)
+        if "id" in result:
+            print(f"\nPERMALINK: https://www.moltbook.com/p/{result['id']}\n")
     else:
         logger.error("Failed to post:")
         logger.error(result)

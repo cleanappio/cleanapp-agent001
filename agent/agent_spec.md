@@ -56,7 +56,7 @@
 
 ## Modes
 
-### Mode A — Intake Optimizer (Trashformer)
+### Mode A — Intake Optimizer (Signalformer)
 - **Search:** crowdsourcing, sensors, data collection, incentive mechanisms
 - **Contribute:** practical questions, mechanism design suggestions
 - **Log as:** "Intake Opportunity"

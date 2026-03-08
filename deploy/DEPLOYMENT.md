@@ -73,7 +73,7 @@ gcloud run jobs create ${SERVICE_NAME} \
     --image=${REGION}-docker.pkg.dev/${PROJECT_ID}/cleanapp-repo/${SERVICE_NAME}:latest \
     --extensions=secrets \
     --set-secrets="MOLTBOOK_API_KEY=moltbook-api-key:latest,GEMINI_API_KEY=gemini-api-key:latest" \
-    --set-env-vars="DRY_RUN=false,LOG_LEVEL=INFO" \
+    --set-env-vars="DRY_RUN=false,LOG_LEVEL=INFO,GEMINI_MODEL=gemini-3.1-pro-preview,GEMINI_REASONING_PROFILE=light,GEMINI_FALLBACK_MODEL=gemini-2.5-pro" \
     --service-account=${SERVICE_ACCOUNT} \
     --max-retries=0 \
     --region=${REGION}
@@ -92,7 +92,7 @@ gcloud run deploy ${SERVICE_NAME} \
     --image=${REGION}-docker.pkg.dev/${PROJECT_ID}/cleanapp-repo/${SERVICE_NAME}:latest \
     --service-account=${SERVICE_ACCOUNT} \
     --set-secrets="MOLTBOOK_API_KEY=moltbook-api-key:latest,GEMINI_API_KEY=gemini-api-key:latest" \
-    --set-env-vars="DRY_RUN=false,LOG_LEVEL=INFO" \
+    --set-env-vars="DRY_RUN=false,LOG_LEVEL=INFO,GEMINI_MODEL=gemini-3.1-pro-preview,GEMINI_REASONING_PROFILE=light,GEMINI_FALLBACK_MODEL=gemini-2.5-pro" \
     --no-allow-unauthenticated \
     --region=${REGION} \
     --min-instances=1 \
@@ -112,7 +112,22 @@ gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=${
 
 - [ ] **Dedicated Project/SA**: Agent runs in its own identity silo.
 - [ ] **No Inbound Access**: Service is not publicly accessible.
-- [ ] **Secrets Managed**: No keys in env vars or code.
+- [ ] **Secrets Managed**: No keys in code or logs; Gemini key comes from Secret Manager.
 - [ ] **Non-Root**: Container runs as `cleanapp` user.
 - [ ] **Minimal Scope**: SA only has `secretAccessor` role.
 - [ ] **Egress Only**: No VPC connector configured (unless strictly needed).
+
+## Gemini Upgrade Notes
+
+The agent now uses the current `google-genai` SDK instead of the deprecated
+`google-generativeai` package.
+
+Recommended runtime settings:
+
+```bash
+GEMINI_MODEL=gemini-3.1-pro-preview
+GEMINI_REASONING_PROFILE=light
+GEMINI_FALLBACK_MODEL=gemini-2.5-pro
+```
+
+Do not print or paste API keys into logs, shells, or chat transcripts.

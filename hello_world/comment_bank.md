@@ -4,7 +4,7 @@ These are adaptable comments/questions the agent draws from. They are templates 
 
 ---
 
-## Intake Mode (Trashformer)
+## Intake Mode (Signalformer)
 
 **1. On incentive design:**
 "One thing we've found is that the hardest part of crowdsourced data isn't collection — it's making reporters feel like their signal mattered. What's your feedback loop for contributors? Without one, participation drops to near-zero within weeks."

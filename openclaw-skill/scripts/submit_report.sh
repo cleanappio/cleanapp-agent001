@@ -1,172 +1,197 @@
 #!/usr/bin/env bash
-# CleanApp Report Submission Helper
-# Usage: ./submit_report.sh --title "..." --description "..." [options]
+# CleanApp v1 single-item ingest helper (Fetcher Key System)
 #
-# Requires: CLEANAPP_API_TOKEN environment variable
+# This is a convenience wrapper around the v1 quarantine-first ingest surface:
+#   POST /v1/reports:bulkIngest
+#
+# Notes:
+# - Requires CLEANAPP_API_TOKEN (Bearer key).
+# - Default behavior is quarantine-first on the backend (shadow visibility for new fetchers).
+# - Supports --dry-run (no network).
 
 set -euo pipefail
 
-# Defaults
-API_URL="${CLEANAPP_API_URL:-https://reports.cleanapp.io/api/v3/reports/bulk_ingest}"
-SOURCE="openclaw_agent"
-CLASSIFICATION="physical"
-SEVERITY="0.5"
-SCORE="0.7"
-LAT=""
-LNG=""
+BASE_URL="${CLEANAPP_BASE_URL:-https://live.cleanapp.io}"
+ENDPOINT="/v1/reports:bulkIngest"
+
 TITLE=""
 DESCRIPTION=""
-URL=""
-TAGS=""
-BRAND=""
-IMAGE_FILE=""
-DRY_RUN="${DRY_RUN:-false}"
+LAT=""
+LNG=""
+SOURCE_ID=""
+COLLECTED_AT=""
+AGENT_ID="${CLEANAPP_AGENT_ID:-cleanapp-agent001}"
+AGENT_VERSION="${CLEANAPP_AGENT_VERSION:-1.0}"
+SOURCE_TYPE="${CLEANAPP_SOURCE_TYPE:-text}"
+SOURCE_URL=""
+DRY_RUN="false"
+NO_LOCATION="false"
+APPROX_LOCATION="false"
+APPROX_DECIMALS="2"
 
 usage() {
-    cat <<EOF
-CleanApp Report Submission
+  cat <<USAGE
+CleanApp v1 ingest helper
 
-Usage: $0 --title "..." --description "..." [options]
+Usage:
+  $0 --title "..." --description "..." [options]
 
 Required:
-  --title TEXT          Short title (max 500 chars)
-  --description TEXT    Detailed description (max 16,000 chars)
+  --title TEXT
+  --description TEXT
 
 Optional:
-  --lat FLOAT           Latitude
-  --lng FLOAT           Longitude
-  --severity FLOAT      Severity 0.0-1.0 (default: 0.5)
-  --classification STR  "physical" or "digital" (default: physical)
-  --tags STR            Comma-separated tags
-  --brand STR           Brand/company name
-  --url STR             Source URL
-  --score FLOAT         Confidence score 0.0-1.0 (default: 0.7)
-  --image FILE          Path to image file (will be base64-encoded)
-  --dry-run             Print request without sending
-  --api-url URL         Override API endpoint
+  --lat FLOAT
+  --lng FLOAT
+  --source-id STR           Idempotency key. If omitted, one is generated.
+  --collected-at ISO8601    UTC timestamp (e.g. 2026-02-15T09:00:00Z). Defaults to now.
+  --source-type STR         text|vision|sensor|web (default: ${SOURCE_TYPE})
+  --source-url URL          Included verbatim in the description for context.
+  --no-location             Remove lat/lng entirely
+  --approx-location         Round lat/lng to reduce precision
+  --approx-decimals N       Decimals for --approx-location (default: ${APPROX_DECIMALS})
+  --base-url URL            Default: ${BASE_URL}
+  --dry-run                 Print payload and exit without sending
 
 Environment:
-  CLEANAPP_API_TOKEN    Required. Bearer token for authentication.
-  CLEANAPP_API_URL      Optional. Override API endpoint.
-  DRY_RUN               Set to "true" to print without sending.
+  CLEANAPP_API_TOKEN        Required unless --dry-run. Bearer token for authentication.
+  CLEANAPP_BASE_URL         Optional base URL (default: https://live.cleanapp.io)
+  CLEANAPP_AGENT_ID         Optional (default: cleanapp-agent001)
+  CLEANAPP_AGENT_VERSION    Optional (default: 1.0)
+  CLEANAPP_SOURCE_TYPE      Optional (default: text)
 
 Examples:
-  $0 --title "Pothole on Oak St" --description "30cm wide, 10cm deep" --lat 37.77 --lng -122.42
-  $0 --title "Trash overflow" --description "Dumpster full" --severity 0.8 --brand "Waste Management"
-EOF
-    exit 1
+  export CLEANAPP_API_TOKEN="cleanapp_fk_live_..."
+  $0 --title "Broken elevator" --description "Elevator stuck on floor 3" --lat 34.0702 --lng -118.4441 --approx-location
+
+  $0 --title "Phishing page" --description "Fake login page" --source-type web --source-url "https://example.com" --dry-run
+USAGE
 }
 
-# Parse arguments
 while [[ $# -gt 0 ]]; do
-    case $1 in
-        --title) TITLE="$2"; shift 2 ;;
-        --description) DESCRIPTION="$2"; shift 2 ;;
-        --lat) LAT="$2"; shift 2 ;;
-        --lng) LNG="$2"; shift 2 ;;
-        --severity) SEVERITY="$2"; shift 2 ;;
-        --classification) CLASSIFICATION="$2"; shift 2 ;;
-        --tags) TAGS="$2"; shift 2 ;;
-        --brand) BRAND="$2"; shift 2 ;;
-        --url) URL="$2"; shift 2 ;;
-        --score) SCORE="$2"; shift 2 ;;
-        --image) IMAGE_FILE="$2"; shift 2 ;;
-        --dry-run) DRY_RUN="true"; shift ;;
-        --api-url) API_URL="$2"; shift 2 ;;
-        --help|-h) usage ;;
-        *) echo "Unknown option: $1"; usage ;;
-    esac
+  case "$1" in
+    --title) TITLE="$2"; shift 2 ;;
+    --description) DESCRIPTION="$2"; shift 2 ;;
+    --lat) LAT="$2"; shift 2 ;;
+    --lng) LNG="$2"; shift 2 ;;
+    --source-id) SOURCE_ID="$2"; shift 2 ;;
+    --collected-at) COLLECTED_AT="$2"; shift 2 ;;
+    --source-type) SOURCE_TYPE="$2"; shift 2 ;;
+    --source-url) SOURCE_URL="$2"; shift 2 ;;
+    --no-location) NO_LOCATION="true"; shift ;;
+    --approx-location) APPROX_LOCATION="true"; shift ;;
+    --approx-decimals) APPROX_DECIMALS="$2"; shift 2 ;;
+    --base-url) BASE_URL="$2"; shift 2 ;;
+    --dry-run) DRY_RUN="true"; shift ;;
+    --help|-h) usage; exit 0 ;;
+    *) echo "Unknown option: $1"; usage; exit 2 ;;
+  esac
 done
 
-# Validate required fields
-if [[ -z "$TITLE" ]]; then
-    echo "Error: --title is required"
-    usage
-fi
-if [[ -z "$DESCRIPTION" ]]; then
-    echo "Error: --description is required"
-    usage
-fi
-if [[ -z "${CLEANAPP_API_TOKEN:-}" && "$DRY_RUN" != "true" ]]; then
-    echo "Error: CLEANAPP_API_TOKEN environment variable is required"
-    echo "Set it with: export CLEANAPP_API_TOKEN='your_token_here'"
-    exit 1
+if [[ -z "${TITLE}" || -z "${DESCRIPTION}" ]]; then
+  echo "Error: --title and --description are required" >&2
+  usage
+  exit 2
 fi
 
-# Generate external_id
-EXTERNAL_ID="openclaw_$(date -u +%Y%m%dT%H%M%S)_$(head -c 8 /dev/urandom | xxd -p)"
-
-# Build tags JSON array
-TAGS_JSON="[]"
-if [[ -n "$TAGS" ]]; then
-    TAGS_JSON=$(echo "$TAGS" | tr ',' '\n' | sed 's/^/"/;s/$/"/' | paste -sd, - | sed 's/^/[/;s/$/]/')
+if [[ -z "${COLLECTED_AT}" ]]; then
+  COLLECTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 fi
 
-# Handle image base64 encoding
-IMAGE_B64=""
-if [[ -n "$IMAGE_FILE" && -f "$IMAGE_FILE" ]]; then
-    IMAGE_B64=$(base64 < "$IMAGE_FILE" | tr -d '\n')
+if [[ -z "${SOURCE_ID}" ]]; then
+  # Idempotency key. Caller can override to make retries safe.
+  SOURCE_ID="openclaw_${AGENT_ID}_$(date -u +%Y%m%dT%H%M%S)_$(head -c 8 /dev/urandom | xxd -p)"
 fi
 
-# Build metadata object
-METADATA=$(cat <<METADATA_EOF
-{
-    "classification": "$CLASSIFICATION",
-    "severity_level": $SEVERITY
-    $([ -n "$LAT" ] && echo ", \"latitude\": $LAT" || true)
-    $([ -n "$LNG" ] && echo ", \"longitude\": $LNG" || true)
-    $([ -n "$BRAND" ] && echo ", \"brand_name\": \"$BRAND\"" || true)
+if [[ "${NO_LOCATION}" == "true" ]]; then
+  LAT=""; LNG=""
+fi
+
+if [[ "${APPROX_LOCATION}" == "true" ]]; then
+  if [[ -n "${LAT}" ]]; then
+    LAT="$(python3 - <<PY
+import sys
+print(round(float(sys.argv[1]), int(sys.argv[2])))
+PY
+"${LAT}" "${APPROX_DECIMALS}")"
+  fi
+  if [[ -n "${LNG}" ]]; then
+    LNG="$(python3 - <<PY
+import sys
+print(round(float(sys.argv[1]), int(sys.argv[2])))
+PY
+"${LNG}" "${APPROX_DECIMALS}")"
+  fi
+fi
+
+if [[ -n "${SOURCE_URL}" ]]; then
+  DESCRIPTION="${DESCRIPTION}\n\nSource URL: ${SOURCE_URL}"
+fi
+
+payload="$(
+python3 - <<PY
+import json
+import sys
+
+payload = {
+  "items": [
+    {
+      "source_id": sys.argv[1],
+      "title": sys.argv[2],
+      "description": sys.argv[3],
+      "collected_at": sys.argv[4],
+      "agent_id": sys.argv[5],
+      "agent_version": sys.argv[6],
+      "source_type": sys.argv[7],
+    }
+  ]
 }
-METADATA_EOF
-)
 
-# Build full request
-REQUEST=$(cat <<REQUEST_EOF
-{
-    "source": "$SOURCE",
-    "items": [{
-        "external_id": "$EXTERNAL_ID",
-        "title": $(echo "$TITLE" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read().strip()))"),
-        "content": $(echo "$DESCRIPTION" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read().strip()))"),
-        "url": "$URL",
-        "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-        "score": $SCORE,
-        "tags": $TAGS_JSON,
-        "metadata": $METADATA
-        $([ -n "$IMAGE_B64" ] && echo ", \"image_base64\": \"$IMAGE_B64\"" || true)
-    }]
-}
-REQUEST_EOF
-)
+lat = sys.argv[8]
+lng = sys.argv[9]
+if lat.strip() and lng.strip():
+  payload["items"][0]["lat"] = float(lat)
+  payload["items"][0]["lng"] = float(lng)
 
-if [[ "$DRY_RUN" == "true" ]]; then
-    echo "=== DRY RUN ==="
-    echo "URL: $API_URL"
-    echo "Token: ${CLEANAPP_API_TOKEN:+set (hidden)}"
-    echo ""
-    echo "$REQUEST" | python3 -m json.tool 2>/dev/null || echo "$REQUEST"
-    echo ""
-    echo "=== To submit for real, remove --dry-run ==="
-    exit 0
+print(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
+PY
+"${SOURCE_ID}" "${TITLE}" "${DESCRIPTION}" "${COLLECTED_AT}" "${AGENT_ID}" "${AGENT_VERSION}" "${SOURCE_TYPE}" "${LAT}" "${LNG}"
+)"
+
+url="${BASE_URL%/}${ENDPOINT}"
+
+if [[ "${DRY_RUN}" == "true" ]]; then
+  echo "=== DRY RUN (no network) ==="
+  echo "URL: ${url}"
+  echo "Token: ${CLEANAPP_API_TOKEN:+set (hidden)}"
+  echo "Payload:" 
+  echo "${payload}" | python3 -m json.tool 2>/dev/null || echo "${payload}"
+  exit 0
 fi
 
-# Submit
-echo "Submitting report: $TITLE"
-RESPONSE=$(curl -s -w "\n%{http_code}" \
-    -X POST "$API_URL" \
-    -H "Authorization: Bearer $CLEANAPP_API_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d "$REQUEST")
-
-HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-BODY=$(echo "$RESPONSE" | sed '$d')
-
-if [[ "$HTTP_CODE" == "200" ]]; then
-    echo "✅ Report submitted successfully!"
-    echo "   External ID: $EXTERNAL_ID"
-    echo "   Response: $BODY"
-else
-    echo "❌ Submission failed (HTTP $HTTP_CODE)"
-    echo "   Response: $BODY"
-    exit 1
+if [[ -z "${CLEANAPP_API_TOKEN:-}" ]]; then
+  echo "Error: missing CLEANAPP_API_TOKEN env var" >&2
+  exit 2
 fi
+
+echo "Submitting 1 item to ${url} (source_id=${SOURCE_ID})"
+resp="$(
+  curl -sS -w "\n%{http_code}" \
+    -X POST "${url}" \
+    -H "authorization: Bearer ${CLEANAPP_API_TOKEN}" \
+    -H "content-type: application/json" \
+    -d "${payload}"
+)"
+
+http_code="$(echo "${resp}" | tail -n 1)"
+body="$(echo "${resp}" | sed '$d')"
+
+if [[ "${http_code}" =~ ^2 ]]; then
+  echo "OK (http=${http_code})"
+  echo "${body}"
+  exit 0
+fi
+
+echo "ERROR (http=${http_code})" >&2
+printf '%s\n' "${body}" >&2
+exit 1

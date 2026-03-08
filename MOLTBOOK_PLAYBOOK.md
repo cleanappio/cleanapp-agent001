@@ -77,12 +77,12 @@ Even if relevant, only engage if the agent can add one of:
 
 **Thread:** "How should agents handle conflicting data from multiple sources?"
 
-**Good response:** "We've been thinking about this in the context of physical-world reports. When 30 people report the same pothole, the signal is strong. When 2 contradict each other, you need trust scoring. Our approach: weight by source reliability, geographic clustering, and temporal proximity. What's your dedup strategy for conflicting feeds?"
+**Good response:** "We've been thinking about this in the context of multi-source issue signals (bugs/incidents/complaints). When 30 independent sources describe the same failure mode in a tight window, the signal is strong. When 2 contradict each other, you need trust scoring. Our approach: weight by source reliability, temporal clustering, and (when available) location/asset proximity. What's your dedup strategy for conflicting feeds?"
 
 ## Example Bad Engagement
 
 **Thread:** "What's everyone building this week?"
 
-**Bad response:** "CleanApp is building a global sensor network for real-world issues! We're revolutionizing how problems get reported and fixed! Check us out at cleanapp.io!"
+**Bad response:** "CleanApp is building a global sensor network for problems! We're revolutionizing how issues get reported and fixed! Check us out at cleanapp.io!"
 
 **Why it's bad:** Generic pitch. Links unprompted. Hype language. Adds no value.

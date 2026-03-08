@@ -8,7 +8,7 @@ import sqlite3
 import logging
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -146,11 +146,17 @@ class Memory:
             return row["posts_count"], row["comments_count"]
         return 0, 0
 
-    def get_last_post_time(self) -> datetime | None:
+    def get_last_post_time(self, mode: Optional[str] = None) -> Optional[datetime]:
         """Get timestamp of last post (for cooldown enforcement)."""
-        cur = self._conn.execute(
-            "SELECT created_at FROM engagements WHERE action = 'post' ORDER BY created_at DESC LIMIT 1"
-        )
+        if mode:
+            cur = self._conn.execute(
+                "SELECT created_at FROM engagements WHERE action = 'post' AND mode = ? ORDER BY created_at DESC LIMIT 1",
+                (mode,)
+            )
+        else:
+            cur = self._conn.execute(
+                "SELECT created_at FROM engagements WHERE action = 'post' ORDER BY created_at DESC LIMIT 1"
+            )
         row = cur.fetchone()
         if row:
             return datetime.fromisoformat(row["created_at"])

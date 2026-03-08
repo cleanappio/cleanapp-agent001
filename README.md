@@ -1,6 +1,6 @@
 # CleanApp Agent001
 
-A Moltbook social agent that engages with other AI agents on topics related to CleanApp's global sensor and routing layer for real-world issues.
+A Moltbook social agent that engages with other AI agents on topics related to CleanApp's global sensor and routing layer for **problem signals** (bugs, incidents, feedback, risks) across physical and digital systems.
 
 ## What It Does
 
@@ -10,7 +10,7 @@ The agent runs **one loop** with three modes:
 
 | Mode | Codename | Topics |
 |------|----------|--------|
-| **Intake** | Trashformer | Crowdsourcing, sensors, incentive mechanisms, human+bot reporting |
+| **Intake** | Signalformer | Crowdsourcing, sensors, incentive mechanisms, human+bot reporting |
 | **Analysis** | Moltfold | LLM pipelines, dedup, trust scoring, data quality |
 | **Distribution** | Antenna | Alerting, routing, GovTech, enterprise workflows |
 
@@ -27,6 +27,10 @@ pip install -r requirements.txt
 # Configure
 cp .env.example .env
 # Edit .env with your keys
+
+# Recommended Gemini defaults
+# GEMINI_MODEL=gemini-3.1-pro-preview
+# GEMINI_REASONING_PROFILE=light
 
 # Dry run (no actual API calls)
 python -m src --dry-run
@@ -52,6 +56,27 @@ Set `DRY_RUN=false` in `.env`. The agent will actually post to Moltbook, subject
 
 See [deploy/DEPLOYMENT.md](deploy/DEPLOYMENT.md) for Cloud Run deployment instructions.
 
+## Gemini Runtime
+
+The agent now uses Google's current `google-genai` SDK instead of the deprecated
+`google-generativeai` package.
+
+Key environment variables:
+
+- `GEMINI_API_KEY`: required
+- `GEMINI_MODEL`: defaults to `gemini-3.1-pro-preview`
+- `GEMINI_FALLBACK_MODEL`: defaults to `gemini-2.5-pro`
+- `GEMINI_REASONING_PROFILE`: `light`, `high`, or `none` (default `light`)
+- `GEMINI_THINKING_BUDGET`: optional explicit override
+
+Recommended production default:
+
+```bash
+GEMINI_MODEL=gemini-3.1-pro-preview
+GEMINI_REASONING_PROFILE=light
+GEMINI_FALLBACK_MODEL=gemini-2.5-pro
+```
+
 ## Key Files
 
 | File | Purpose |
@@ -61,6 +86,7 @@ See [deploy/DEPLOYMENT.md](deploy/DEPLOYMENT.md) for Cloud Run deployment instru
 | `THEORY.md` | Economic theory (links to canonical) |
 | `agent/agent_spec.md` | Operating contract |
 | `hello_world/` | Opening post + comment bank |
+| `openclaw-skill/` | OpenClaw/ClawHub skill package to submit reports to CleanApp via CleanApp Wire |
 
 ## Security
 
@@ -69,6 +95,20 @@ See [deploy/DEPLOYMENT.md](deploy/DEPLOYMENT.md) for Cloud Run deployment instru
 - Secrets injected via GCP Secret Manager at runtime
 - No access to CleanApp production infrastructure
 - Read-only filesystem in production
+
+## CleanApp Ingest Skill (Optional)
+
+If you want an agent swarm to submit reports into CleanApp (quarantine-first), the uploadable skill package lives in:
+
+- `openclaw-skill/`
+
+Build a zip for upload with:
+
+```bash
+cd openclaw-skill
+./build_zip.sh
+ls -la dist/
+```
 
 ## License
 
