@@ -99,7 +99,13 @@ class MoltbookClient:
             if "ends in" in hint:
                 try:
                     parts = hint.split("ends in")[1].strip().split()
-                    hours = float(parts[0])
+                    val = float(parts[0])
+                    unit = parts[1].lower() if len(parts) > 1 else "hours"
+                    
+                    if "day" in unit:
+                        hours = val * 24.0
+                    else:
+                        hours = val
                 except (IndexError, ValueError):
                     hours = 24.0  # default fallback
 
@@ -196,7 +202,7 @@ class MoltbookClient:
             return block
 
         return self._request("POST", "/posts", json={
-            "submolt": submolt,
+            "submolt_name": submolt,
             "title": title,
             "content": content,
         })

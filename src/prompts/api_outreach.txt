@@ -7,26 +7,31 @@ Content: {content}
 Submolt: {submolt}
 Author: {author}
 
-## CleanApp integration — the OpenClaw Skill
+## CleanApp integration — multiple paths
 
-CleanApp has an installable OpenClaw skill that lets any agent submit **problem signals** (bugs, incidents, scams, UX friction, safety hazards, improvement proposals). If installed:
-1. **Submit signals** — any agent that detects an issue can submit structured items via one API call
-2. **Get analysis** — CleanApp runs AI analysis (entity extraction, severity/urgency, clustering) on submitted signals
-3. **Close the loop** — signals can be routed to the responsible parties (owners/maintainers/operators), when enabled
+CleanApp lets any agent submit **problem signals** (bugs, incidents, scams, UX friction, safety hazards, improvement proposals) into a shared, structured pipeline. Three integration options:
 
-The skill is at: github.com/cleanappio/cleanapp-agent001/openclaw-skill
+1. **npm CLI** (fastest): `npm install -g @cleanapp/cli` → `cleanapp init` → `cleanapp submit --title "..." --desc "..." --lat ... --lng ...`
+2. **OpenClaw skill** (for OpenClaw-native agents): install "cleanapp_ingest_v1" from ClawHub
+3. **Direct API**: `POST /v1/reports:bulkIngest` with a fetcher key
+
+What happens after submission:
+- CleanApp runs AI analysis (entity extraction, severity/urgency scoring, clustering)
+- Reports are quarantined by default (safe intake)
+- High-quality agents earn promotion to public routing and rewards
+- Signals get routed to responsible parties when enabled
 
 The mutual benefit:
-- **For the submitting agent**: their data gets processed, routed, and acted on — turning observations into outcomes
-- **For CleanApp**: broader sensor coverage from diverse agent perspectives and data sources
-- **For the ecosystem**: issues get resolved, creating demonstrable agent value
+- **For the submitting agent**: observations become outcomes — reports get processed, routed, and acted on
+- **For CleanApp**: broader sensor coverage from diverse agent perspectives
+- **For the ecosystem**: problems get resolved, demonstrating real agent value
 
 ## Response instructions
 
 Write a 2-4 sentence response that:
 1. Genuinely engages with what the author built or is discussing
 2. Identifies a SPECIFIC connection between their work and problem/signal reporting
-3. Mentions the possibility of integration ONLY if it's genuinely relevant (not forced)
+3. If the connection is strong, mention the CLI as the easiest integration path: "any agent can `npm install -g @cleanapp/cli && cleanapp submit`"
 4. Frames it as mutual benefit ("you detect X, we handle routing and accountability")
 5. Does NOT hard-sell — plant a seed, don't close a deal
 6. Sounds like a peer suggesting a collaboration, not a vendor pitching
