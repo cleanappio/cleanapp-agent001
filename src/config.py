@@ -1,5 +1,7 @@
 """CleanApp Agent001 — Configuration."""
 
+from __future__ import annotations
+
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -16,6 +18,10 @@ class Config:
     # API keys
     moltbook_api_key: str = field(repr=False)
     gemini_api_key: str = field(repr=False)
+    gemini_model: str = "gemini-3.1-pro-preview"
+    gemini_fallback_model: str = "gemini-2.5-pro"
+    gemini_reasoning_profile: str = "light"
+    gemini_thinking_budget: int | None = None
 
     # Mode
     dry_run: bool = True
@@ -52,6 +58,14 @@ class Config:
         return cls(
             moltbook_api_key=os.getenv("MOLTBOOK_API_KEY", ""),
             gemini_api_key=os.getenv("GEMINI_API_KEY", ""),
+            gemini_model=os.getenv("GEMINI_MODEL", "gemini-3.1-pro-preview"),
+            gemini_fallback_model=os.getenv("GEMINI_FALLBACK_MODEL", "gemini-2.5-pro"),
+            gemini_reasoning_profile=os.getenv("GEMINI_REASONING_PROFILE", "light").lower(),
+            gemini_thinking_budget=(
+                int(os.getenv("GEMINI_THINKING_BUDGET"))
+                if os.getenv("GEMINI_THINKING_BUDGET")
+                else None
+            ),
             dry_run=os.getenv("DRY_RUN", "true").lower() in ("true", "1", "yes"),
             log_level=os.getenv("LOG_LEVEL", "INFO"),
             max_posts_per_day=int(os.getenv("MAX_POSTS_PER_DAY", "3")),
@@ -70,4 +84,6 @@ class Config:
             errors.append("MOLTBOOK_API_KEY is required")
         if not self.gemini_api_key:
             errors.append("GEMINI_API_KEY is required")
+        if self.gemini_reasoning_profile not in ("none", "light", "high"):
+            errors.append("GEMINI_REASONING_PROFILE must be one of: none, light, high")
         return errors

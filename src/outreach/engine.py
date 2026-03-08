@@ -5,12 +5,11 @@ import os
 from typing import List, Optional
 from datetime import datetime, timedelta
 
+from ..llm import GeminiLLM
 from ..memory import Memory
 from .adapters.base import NetworkAdapter, Post
 from .adapters.bb import BBAdapter
 from .adapters.moltbook import MoltbookAdapter
-
-import google.generativeai as genai
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +43,17 @@ class OutreachEngine:
             logger.error(f"Failed to load Moltbook Adapter: {e}")
 
     def _init_ai(self):
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY not found")
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        self.llm = GeminiLLM(
+            api_key=os.getenv("GEMINI_API_KEY", ""),
+            model=os.getenv("GEMINI_MODEL", "gemini-3.1-pro-preview"),
+            fallback_model=os.getenv("GEMINI_FALLBACK_MODEL", "gemini-2.5-pro"),
+            reasoning_profile=os.getenv("GEMINI_REASONING_PROFILE", "light"),
+            thinking_budget=(
+                int(os.getenv("GEMINI_THINKING_BUDGET"))
+                if os.getenv("GEMINI_THINKING_BUDGET")
+                else None
+            ),
+        )
 
     def _load_system_prompt(self):
         try:
@@ -259,8 +264,7 @@ Content: {post.content}
 YOUR REPLY (or NO_REPLY):
 """
         try:
-            response = self.model.generate_content(prompt)
-            text = response.text.strip()
+            text = self.llm.generate_text(prompt)
             if "NO_REPLY" in text and len(text) < 20:
                 return None
             

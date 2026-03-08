@@ -7,9 +7,8 @@ import time
 from pathlib import Path
 from typing import Any
 
-import google.generativeai as genai
-
 from .config import Config
+from .llm import GeminiLLM
 from .memory import Memory
 from .moltbook_client import MoltbookClient, MoltbookPost
 from .outreach import OutreachEngine
@@ -114,8 +113,7 @@ class Agent:
         )
 
         # Initialize Gemini
-        genai.configure(api_key=config.gemini_api_key)
-        self.model = genai.GenerativeModel("gemini-2.0-flash")
+        self.llm = GeminiLLM.from_config(config)
 
         # Load prompts
         self.prompts = self._load_prompts()
@@ -131,8 +129,7 @@ class Agent:
     def _call_llm(self, prompt: str) -> str:
         """Call Gemini and return response text."""
         try:
-            response = self.model.generate_content(prompt)
-            return response.text.strip()
+            return self.llm.generate_text(prompt)
         except Exception as e:
             logger.error("LLM call failed: %s", e)
             return ""

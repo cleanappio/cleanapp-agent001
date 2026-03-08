@@ -6,6 +6,7 @@ import argparse
 import json
 import logging
 import sys
+from dataclasses import replace
 
 from .agent import Agent
 from .config import Config
@@ -175,20 +176,7 @@ def main():
 
     # Override dry-run from CLI
     if args.dry_run is not None:
-        # Rebuild config with dry_run override
-        config = Config(
-            moltbook_api_key=config.moltbook_api_key,
-            gemini_api_key=config.gemini_api_key,
-            dry_run=True,
-            log_level=log_level,
-            max_posts_per_day=config.max_posts_per_day,
-            max_comments_per_day=config.max_comments_per_day,
-            relevance_threshold=config.relevance_threshold,
-            post_cooldown_minutes=config.post_cooldown_minutes,
-            max_outreach_per_day=config.max_outreach_per_day,
-            outreach_cooldown_days=config.outreach_cooldown_days,
-            data_dir=config.data_dir,
-        )
+        config = replace(config, dry_run=True, log_level=log_level)
 
     # Validate config
     errors = config.validate()
