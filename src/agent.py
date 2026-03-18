@@ -474,7 +474,7 @@ class Agent:
 
         # Record
         post_id = "proactive"
-        if result.get("success"):
+        if result and not result.get("error"):
             if "data" in result and isinstance(result["data"], dict):
                 post_id = result["data"].get("id", "proactive")
             else:
