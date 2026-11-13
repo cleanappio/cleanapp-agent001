@@ -1,20 +1,12 @@
-# Official MCP Registry release staging
+# Authoritative MCP Registry publication
 
-These files belong in the **actual MCP implementation repository**, `cleanappio/cleanapp-openai`, after review:
+The MCP server's registry metadata and manual GitHub Actions OIDC publication belong to the actual implementation repository, **[cleanappio/cleanapp-openai](https://github.com/cleanappio/cleanapp-openai)**:
 
-- `server.json` → repository root.
-- `publish-mcp-registry.yml` → `.github/workflows/publish-mcp-registry.yml`.
+- [Authoritative server.json](https://github.com/cleanappio/cleanapp-openai/blob/main/server.json)
+- [Manual registry publishing workflow](https://github.com/cleanappio/cleanapp-openai/blob/main/.github/workflows/publish-mcp-registry.yml)
 
-That implementation is currently private. The manifest intentionally omits `repository`; agent001 is the outreach/client repository and must not be misrepresented as the server source. A remote-only registry entry does not require an npm package or public source repository. Version 1.0.3 matches the inspected MCP source package; the operator must confirm the intended deployed version before publishing.
+That implementation repository is currently private; these links require authorized repository access. This public agent/client repository is not the MCP server source and does not maintain a copied registry version or publishing workflow.
 
-The workflow runs **only by manual dispatch**, only on main in that MCP repository, and requires the exact reviewed SHA/version. It validates metadata and reads live discovery/tool definitions before authenticating. The official publisher is pinned to v1.8.9, its Linux amd64 release SHA256, and a Sigstore release identity. It uses GitHub Actions OIDC; it does not transfer a local GitHub PAT, generate a domain key, modify DNS, or publish an npm package. Its `id-token: write` is restricted to the manually dispatched publish job.
+Public registry namespace: **`io.github.cleanappio/cleanapp`**. [Look up the namespace in the official registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.cleanappio%2Fcleanapp). A registry record describes distribution; it does not prove that a particular AI host has connected the server or submitted a report.
 
-Root/operator sequence after merge, live acceptance and review:
-
-1. Confirm registry namespace `io.github.cleanappio/cleanapp`, source version and remote URL.
-2. Dispatch the workflow from the MCP repository's main branch with its full reviewed SHA and manifest version.
-3. Read the published record and independently run MCP discovery again. A registry record is distribution metadata, not proof that another host has connected it.
-
-Do not enable push/tag autopublishing for this first release. No workflow has been installed or dispatched by creating these staging files.
-
-Official references: [remote-only publishing](https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/quickstart.mdx), [GitHub Actions OIDC](https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/github-actions.mdx), [namespace authentication](https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/authentication.mdx), [pinned publisher release](https://github.com/modelcontextprotocol/registry/releases/tag/v1.8.9).
+The public onboarding source is **https://www.cleanapp.io/agents**. Use its current endpoint and live MCP tool inventory for client setup; use the implementation repository's reviewed metadata/workflow for release instructions.

@@ -35,4 +35,4 @@ Publishing needs an authenticated ClawHub session owned by or authorized for `bo
 
 ## Registry and communication
 
-[Official MCP Registry staging](registry/README.md) uses the actual MCP repository and GitHub Actions OIDC. [Outreach drafts](outreach.md) await concrete posting approval after technical work. Updating registry/package metadata does not install a connector in Grok, and an indexed listing does not prove an active announcement or a successful report.
+[Official MCP Registry publishing](registry/README.md) is maintained in the actual MCP implementation repository, using GitHub Actions OIDC. This client/outreach repository keeps links rather than copied registry versions or publishing workflows. [Outreach drafts](outreach.md) await concrete posting approval after technical work. Updating registry/package metadata does not install a connector in Grok, and an indexed listing does not prove an active announcement or a successful report.
