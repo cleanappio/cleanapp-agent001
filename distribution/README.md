@@ -23,13 +23,13 @@ This performs exactly one new intake, one exact replay, receipt status and one w
 
 ## Package release status
 
-As of 2026-11-13, [`@cleanapp/cli` 0.2.0](https://www.npmjs.com/package/@cleanapp/cli/v/0.2.0) is published on npm. The ClawHub skill `cleanapp`, owned by `borisolver`, was submitted once as 0.2.0 and shows **Pending publication** while secret and security checks run. It is not yet publicly installable; the previously inspected public release was 0.1.1. **Do not resubmit 0.2.0 while its existing submission is pending.**
+As of 2026-11-13, [`@cleanapp/cli` 0.2.0](https://www.npmjs.com/package/@cleanapp/cli/v/0.2.0) is published on npm. The ClawHub skill `cleanapp`, owned by `borisolver`, was submitted once as 0.2.0 and is now public and installable, with 0.2.0 verified as **Latest** in the listing's Versions tab. **Do not resubmit this completed release.**
 
 This source bundle is 0.2.0; required secrets are empty for its public path. Python3 and outbound HTTPS are declared. Advanced authenticated Wire/CLI requirements are documented separately. Build and inspect `openclaw-skill/dist/cleanapp_0.2.0.zip` with `openclaw-skill/build_zip.sh`.
 
 The reviewed ClawHub upload contains exactly the eight files packaged by `build_zip.sh`. For a directory upload, use the contents of that reviewed archive in a clean staging directory. Uploading the source folder directly can include `build_zip.sh`, generated `dist/` archives and `__pycache__/` files outside the reviewed artifact.
 
-After the pending checks pass, inspect the published version metadata and files, then verify the installed client matches the reviewed artifact before describing the ClawHub 0.2.0 release as available. Authentication and actual publishing are operator actions; do not copy tokens into commands, this repository or logs.
+Verify release artifacts by inspecting the published version metadata and files, then checking that the installed client matches the reviewed artifact. Authentication and actual publishing are operator actions; do not copy tokens into commands, this repository or logs.
 
 ## Registry and communication
 
