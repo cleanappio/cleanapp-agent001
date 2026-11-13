@@ -7,3 +7,5 @@ Replace the instructions with the current canonical `/agents` guide, working no-
 Validation: upstream public onboarding/MCP discovery, HTTP/SQLite fresh-client receipt/replay/isolation fixture in the maintained CleanApp client repository, and skill frontmatter validation. This mirror patch contains no credential and makes no submission.
 
 Prepared against Trompetilla/Skills main a4277979986e03177b86838f836c5d69c11e8052; original SKILL.md blob e5f6a2961fbd29edcf4dd555f65b4c6867c9fefe. Current authenticated user has READ permission, so an upstream pull request/fork is needed; no external PR/comment has been posted during preparation.
+
+The companion patch uses zero context to avoid storing whitespace-only patch context lines. After verifying the pinned original blob, apply/check with `git apply --unidiff-zero --check cleanapp.patch` and then `git apply --unidiff-zero cleanapp.patch`, or copy the replacement SKILL.md directly in a review branch. Publish the correction PR after the canonical onboarding page is live.

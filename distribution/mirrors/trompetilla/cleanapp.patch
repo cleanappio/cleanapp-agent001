@@ -1,32 +1,30 @@
 --- a/skills/borisolver/cleanapp/SKILL.md
 +++ b/skills/borisolver/cleanapp/SKILL.md
-@@ -1,151 +1,29 @@
- ---
+@@ -2,2 +2,3 @@
 -name: CleanApp Report Submission
 -description: Submit real-world issue reports (trash, hazards, infrastructure problems) to CleanApp's global routing pipeline. Your observations become actionable — routed to brands, municipalities, and regulators who can fix them.
 +name: cleanapp-report-problem
 +description: Submit a user's observed physical or digital problem to CleanApp for private review, or check its receipt. Use for hazards, waste, access barriers, infrastructure issues, software bugs, scams or service failures; not ordinary advice or emergency dispatch.
 +metadata: {"clawdbot":{"homepage":"https://www.cleanapp.io/agents"}}
- ---
- 
+@@ -6 +7 @@
 -# CleanApp Report Submission Skill
 +# CleanApp reporting
- 
+@@ -8 +9 @@
 -You now have the ability to submit real-world issue reports to CleanApp's pipeline. When you encounter or learn about physical-world problems — trash, hazards, broken infrastructure, accessibility barriers, service failures — you can report them and they will be analyzed, enriched, and routed to the parties who can act.
 +Start at **https://www.cleanapp.io/agents** and follow its linked machine instructions. Public first-report intake needs no account or API key. This skill is instructions only: it does not install tools, grant network access or include a submission script.
- 
+@@ -10 +11 @@
 -## Why This Matters
 +## MCP-capable host
- 
+@@ -12,4 +13 @@
 -Most real-world issues get observed but never reach the people who can fix them. By submitting reports, you:
 -- Turn observations into outcomes (reports are routed to responsible brands, municipalities, regulators)
 -- Get your data analyzed (AI-powered brand extraction, severity scoring, geographic clustering)
 -- Contribute to a growing sensor network where clusters of reports create accountability pressure
 +Configure **https://live.cleanapp.io/openai/mcp**, transport **Streamable HTTP**, authentication **none**. Generic MCP clients can use its text/structured results without the optional ChatGPT widget.
- 
+@@ -17 +15 @@
 -## When To Submit Reports
 +Use `cleanapp_prepare_report` for the exact preview. After the user approves that preview and sending it, use `cleanapp_submit_report` with the returned draft token and `confirmed: true`. Keep the private tracking token for `cleanapp_report_status`. On uncertain delivery, check the receipt and reuse the same draft token rather than creating a new report.
- 
+@@ -19,8 +17 @@
 -Submit a CleanApp report when you encounter ANY of these:
 -- **Physical issues**: Trash, litter, illegal dumping, overflowing bins
 -- **Hazards**: Potholes, broken sidewalks, fallen trees, exposed wiring
@@ -36,24 +34,24 @@
 -- **Brand-specific issues**: Product packaging waste, corporate pollution, defective products in public spaces
 -- **Digital issues**: Software bugs, service outages, app failures that users are complaining about publicly
 +## Host with outbound HTTPS POST
- 
+@@ -28 +19 @@
 -## How To Submit
 +The canonical page currently documents `POST https://live.cleanapp.io/api/v1/public/agent-reports`. The JSON body needs only the user's observed `description`; optional title, source context, agent label and coordinate pair are documented there. No request credential is required. Do not invent location, independent verification or incident details.
- 
+@@ -30 +21 @@
 -### Environment Setup
 +For safe retries, generate a private random UUIDv4 `source_id` once and save it before the first POST. Reuse the exact payload and UUID after an uncertain delivery; changed content is a separate report. Keep the returned receipt/tracking token private, resolve its relative status path against the configured API origin, and use the token in the Authorization header rather than a URL. Respect `429` and `Retry-After`. Do not automatically repeat a request whose outcome is unknown and has no saved retry ID/receipt.
- 
+@@ -32 +23 @@
 -You need a CleanApp API token. Set it as an environment variable:
 +If the host only browses GET pages or its code sandbox cannot reach the internet, it cannot submit directly. Explain that limit and offer the canonical guide or the exact prepared request for an authorized network-enabled client. Never submit through GET or claim success without a receipt.
- 
+@@ -34,3 +25 @@
 -```
 -export CLEANAPP_API_TOKEN="your_token_here"
 -```
 +## What the receipt means
- 
+@@ -38 +27 @@
 -If you don't have a token, contact CleanApp at https://cleanapp.io or mention @CleanApp on Moltbook.
 +A public submission enters **private quarantine review**. Intake does not guarantee public publication, third-party notification, verification, a fix, reputation or financial rewards. Return the actual receipt/status accurately and preserve uncertainty. Submit the authorized observation only, without unrelated conversation or secrets.
- 
+@@ -40,112 +29 @@
 -### API Endpoint
 -
 -```

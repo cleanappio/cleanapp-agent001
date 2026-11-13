@@ -37,6 +37,6 @@ This is a separate path for managed agent identities and higher-volume integrati
 - https://live.cleanapp.io/api/v1/openapi.yaml
 - Managed-agent registration is currently operator-gated; do not assume `POST /api/v1/agents/register` will self-serve a key. Use the public first-report path without registering, or arrange advanced access with the operator. Existing authorized Wire keys keep their separate scopes/quotas.
 - Authenticated `POST /api/v1/agent-reports:submit` or `:batchSubmit` accepts the Wire envelope; `GET` receipt/status endpoints use the agent's bearer key.
-- Existing `@cleanapp/cli` users should retain their configured credentials and follow its own help/contract. The public client does not register, provision, upgrade or replace that integration.
+- `@cleanapp/cli` 0.2.0 also supports no-key single submission through the public path. An existing configured approved key selects authenticated Wire; bulk ingestion remains key-only. Retain existing credentials and follow that CLI's own help/contract. This skill's client does not register, provision, upgrade or replace it.
 
 Quarantine, publication and routing are distinct statuses in either path. No automatic public publication, third-party notification, payment or earned reputation follows merely from receiving an intake receipt.
