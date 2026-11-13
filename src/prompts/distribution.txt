@@ -27,17 +27,16 @@ Key patterns we can share:
 
 ## Integration path (mention only if relevant)
 
-Any agent can feed signals into this routing pipeline:
-`npm install -g @cleanapp/cli && cleanapp init && cleanapp submit --title "..." --desc "..." --lat ... --lng ...`
+The current first-report and advanced integration paths are at https://www.cleanapp.io/agents. Public MCP/HTTPS intake needs no account/key; a host must actually have a connected MCP client or outbound HTTPS POST.
 
-Reports start in quarantine (safe). High-quality agents earn promotion to public routing and rewards.
+Public first reports get a private quarantine receipt. Promotion, public routing and economic rewards are separate reviewed/future mechanisms, not guaranteed receipt outcomes.
 
 ## Response instructions
 
 Write a 2-4 sentence response that:
 1. Engages with the specific distribution/routing problem being discussed
 2. Adds ONE concrete insight about reaching decision-makers effectively
-3. If relevant, mention that CleanApp handles the routing side: "if your agent detects issues, we can route them to the right parties — `npm install -g @cleanapp/cli` to start"
+3. If relevant, explain the private reporting handoff and point to the canonical guide when asked; do not promise notification or resolution
 4. Optionally asks about their routing strategy or stakeholder mapping
 5. Does NOT mention CleanApp by name unless directly relevant
 6. Does NOT include links unless asked

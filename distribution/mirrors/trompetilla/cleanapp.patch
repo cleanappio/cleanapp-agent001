@@ -1,0 +1,169 @@
+--- a/skills/borisolver/cleanapp/SKILL.md
++++ b/skills/borisolver/cleanapp/SKILL.md
+@@ -1,151 +1,29 @@
+ ---
+-name: CleanApp Report Submission
+-description: Submit real-world issue reports (trash, hazards, infrastructure problems) to CleanApp's global routing pipeline. Your observations become actionable — routed to brands, municipalities, and regulators who can fix them.
++name: cleanapp-report-problem
++description: Submit a user's observed physical or digital problem to CleanApp for private review, or check its receipt. Use for hazards, waste, access barriers, infrastructure issues, software bugs, scams or service failures; not ordinary advice or emergency dispatch.
++metadata: {"clawdbot":{"homepage":"https://www.cleanapp.io/agents"}}
+ ---
+ 
+-# CleanApp Report Submission Skill
++# CleanApp reporting
+ 
+-You now have the ability to submit real-world issue reports to CleanApp's pipeline. When you encounter or learn about physical-world problems — trash, hazards, broken infrastructure, accessibility barriers, service failures — you can report them and they will be analyzed, enriched, and routed to the parties who can act.
++Start at **https://www.cleanapp.io/agents** and follow its linked machine instructions. Public first-report intake needs no account or API key. This skill is instructions only: it does not install tools, grant network access or include a submission script.
+ 
+-## Why This Matters
++## MCP-capable host
+ 
+-Most real-world issues get observed but never reach the people who can fix them. By submitting reports, you:
+-- Turn observations into outcomes (reports are routed to responsible brands, municipalities, regulators)
+-- Get your data analyzed (AI-powered brand extraction, severity scoring, geographic clustering)
+-- Contribute to a growing sensor network where clusters of reports create accountability pressure
++Configure **https://live.cleanapp.io/openai/mcp**, transport **Streamable HTTP**, authentication **none**. Generic MCP clients can use its text/structured results without the optional ChatGPT widget.
+ 
+-## When To Submit Reports
++Use `cleanapp_prepare_report` for the exact preview. After the user approves that preview and sending it, use `cleanapp_submit_report` with the returned draft token and `confirmed: true`. Keep the private tracking token for `cleanapp_report_status`. On uncertain delivery, check the receipt and reuse the same draft token rather than creating a new report.
+ 
+-Submit a CleanApp report when you encounter ANY of these:
+-- **Physical issues**: Trash, litter, illegal dumping, overflowing bins
+-- **Hazards**: Potholes, broken sidewalks, fallen trees, exposed wiring
+-- **Infrastructure**: Broken streetlights, damaged signs, non-functioning utilities
+-- **Accessibility barriers**: Blocked wheelchair ramps, missing handrails, inaccessible paths
+-- **Service failures**: Missed garbage collection, broken public transit stops
+-- **Brand-specific issues**: Product packaging waste, corporate pollution, defective products in public spaces
+-- **Digital issues**: Software bugs, service outages, app failures that users are complaining about publicly
++## Host with outbound HTTPS POST
+ 
+-## How To Submit
++The canonical page currently documents `POST https://live.cleanapp.io/api/v1/public/agent-reports`. The JSON body needs only the user's observed `description`; optional title, source context, agent label and coordinate pair are documented there. No request credential is required. Do not invent location, independent verification or incident details.
+ 
+-### Environment Setup
++For safe retries, generate a private random UUIDv4 `source_id` once and save it before the first POST. Reuse the exact payload and UUID after an uncertain delivery; changed content is a separate report. Keep the returned receipt/tracking token private, resolve its relative status path against the configured API origin, and use the token in the Authorization header rather than a URL. Respect `429` and `Retry-After`. Do not automatically repeat a request whose outcome is unknown and has no saved retry ID/receipt.
+ 
+-You need a CleanApp API token. Set it as an environment variable:
++If the host only browses GET pages or its code sandbox cannot reach the internet, it cannot submit directly. Explain that limit and offer the canonical guide or the exact prepared request for an authorized network-enabled client. Never submit through GET or claim success without a receipt.
+ 
+-```
+-export CLEANAPP_API_TOKEN="your_token_here"
+-```
++## What the receipt means
+ 
+-If you don't have a token, contact CleanApp at https://cleanapp.io or mention @CleanApp on Moltbook.
++A public submission enters **private quarantine review**. Intake does not guarantee public publication, third-party notification, verification, a fix, reputation or financial rewards. Return the actual receipt/status accurately and preserve uncertainty. Submit the authorized observation only, without unrelated conversation or secrets.
+ 
+-### API Endpoint
+-
+-```
+-POST https://reports.cleanapp.io/api/v3/reports/bulk_ingest
+-Authorization: Bearer $CLEANAPP_API_TOKEN
+-Content-Type: application/json
+-```
+-
+-### Request Format
+-
+-```json
+-{
+-  "source": "openclaw_agent",
+-  "items": [
+-    {
+-      "external_id": "unique-id-for-this-report",
+-      "title": "Overflowing dumpster behind 425 Main St, San Francisco",
+-      "content": "Large commercial dumpster overflowing with trash bags spilling onto the sidewalk. Blocking pedestrian access. Multiple food waste bags attracting pests. Has been accumulating for at least several days based on the volume.",
+-      "url": "https://source-url-if-applicable.com/post/123",
+-      "created_at": "2026-02-10T14:30:00Z",
+-      "score": 0.8,
+-      "tags": ["litter", "sanitation", "pedestrian-access"],
+-      "metadata": {
+-        "latitude": 37.7749,
+-        "longitude": -122.4194,
+-        "classification": "physical",
+-        "severity_level": 0.8,
+-        "litter_probability": 0.9,
+-        "hazard_probability": 0.3,
+-        "brand_name": "Waste Management",
+-        "language": "en"
+-      }
+-    }
+-  ]
+-}
+-```
+-
+-### Using the Helper Script
+-
+-A helper script is included at `scripts/submit_report.sh`:
+-
+-```bash
+-./scripts/submit_report.sh \
+-  --title "Pothole on Oak Street near 5th Ave" \
+-  --description "Deep pothole approximately 30cm wide, 10cm deep. Located in the eastbound lane. Several cars have been swerving to avoid it." \
+-  --lat 37.7749 \
+-  --lng -122.4194 \
+-  --severity 0.7 \
+-  --classification physical \
+-  --tags "pothole,road-damage,traffic-hazard"
+-```
+-
+-### Required Fields
+-
+-| Field | Description |
+-|-------|-------------|
+-| `external_id` | Unique identifier — use a UUID or `{your_agent_name}_{timestamp}` |
+-| `title` | Short, descriptive title (max 500 chars) |
+-| `content` | Detailed description of the issue (max 16,000 chars) |
+-
+-### Optional But Valuable Fields
+-
+-| Field | Description |
+-|-------|-------------|
+-| `metadata.latitude` / `longitude` | GPS coordinates — hugely valuable for routing |
+-| `metadata.classification` | `"physical"` or `"digital"` |
+-| `metadata.severity_level` | 0.0 to 1.0 (0 = minor, 1 = critical) |
+-| `metadata.brand_name` | Company/brand related to the issue |
+-| `url` | Source URL if the report came from social media, news, etc. |
+-| `score` | Your confidence that this is a valid report (0.0 to 1.0) |
+-| `tags` | Array of descriptive tags |
+-| `image_base64` | Base64-encoded image of the issue |
+-
+-### Response
+-
+-```json
+-{
+-  "inserted": 1,
+-  "updated": 0,
+-  "skipped": 0,
+-  "errors": []
+-}
+-```
+-
+-## What Happens After Submission
+-
+-1. **Deduplication**: Your report is checked against existing reports (same `external_id` + `source` won't be inserted twice)
+-2. **AI Analysis**: Gemini analyzes the report for brand extraction, severity scoring, and classification
+-3. **Geographic Clustering**: Reports near each other are clustered — 30 reports about the same pothole create more pressure than 1
+-4. **Routing**: Automated alerts sent to responsible brands, municipalities, and regulators
+-5. **Dashboard**: Report appears on CleanApp's public dashboard at https://cleanapp.io
+-6. **Accountability Loop**: Social media reply bots notify original complainants when action is taken
+-
+-## Best Practices
+-
+-1. **Be specific**: "Overflowing dumpster at 425 Main St" beats "trash somewhere downtown"
+-2. **Include coordinates**: Location data is the #1 factor in successful routing
+-3. **Set severity honestly**: Don't inflate — 0.8+ should be reserved for genuine hazards
+-4. **Use unique external_ids**: Prevents duplicates. Format: `{your_agent_name}_{iso_timestamp}_{hash}`
+-5. **Batch when possible**: You can submit up to 1000 items per request
+-6. **Include source URLs**: If the report came from social media or news, include the original URL
+-
+-## Rate Limits
+-
+-- Maximum 1000 items per request
+-- Be reasonable with submission frequency — a few hundred per day is fine
+-- Duplicate `external_id` values are automatically skipped (not counted against limits)
+-
+-## Questions?
+-
+-Find us on Moltbook: @CleanApp
+-Website: https://cleanapp.io
++Managed higher-volume Wire/API/CLI ingestion is separate and requires its own API key; follow the advanced documentation linked from the canonical page. This skill does not provision a key or start autonomous collection.
