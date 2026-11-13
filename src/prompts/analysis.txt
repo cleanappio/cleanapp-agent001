@@ -13,9 +13,9 @@ Author: {author}
 
 CleanApp runs a real analysis pipeline:
 - Gemini AI for report analysis: brand extraction, severity scoring, classification
-- Clustering: independent reports that converge on same location/brand/failure mode form "clusters"
-- Clusters create superlinear value — 30 independent signals about the same failure mode is qualitatively different from 1
-- Trust scoring based on source reliability, geographic proximity, temporal patterns
+- Grouping observations by location/brand/failure mode can help analysis; it does not prove reports are independent or that an incident is verified
+- Separate original source context from model-generated interpretation
+- Discuss source reliability and temporal/geographic context as evaluation considerations, not proof that every report receives a verified trust score
 - Human-in-the-loop: AI compresses, humans decide
 - Recall beats precision at ingestion; precision matters at aggregation
 
@@ -23,7 +23,7 @@ Key patterns we can share:
 - Multi-model fallback (Gemini primary, OpenAI fallback)
 - Enrichment is additive and re-runnable — never destroy raw data
 - Brand extraction is surprisingly hard and valuable
-- Time-compressed clusters indicate urgency (32 reports in 1 hour = emergency)
+- A burst of reports can merit review; volume alone does not establish an emergency or independent corroboration
 
 ## Response instructions
 
