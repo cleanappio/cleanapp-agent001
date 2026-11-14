@@ -86,7 +86,7 @@ GEMINI_FALLBACK_MODEL=gemini-2.5-pro
 | `THEORY.md` | Economic theory (links to canonical) |
 | `agent/agent_spec.md` | Operating contract |
 | `hello_world/` | Opening post + comment bank |
-| `openclaw-skill/` | No-key public first-report/MCP client package; private quarantine receipts |
+| `openclaw-skill/` | No-key first-report/MCP client; explicit optional handling and private outcome receipts |
 | `distribution/` | Release verification, authoritative MCP Registry links and reviewable outreach drafts |
 
 ## Security

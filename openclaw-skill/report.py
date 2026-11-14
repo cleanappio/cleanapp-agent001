@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Dependency-free client for CleanApp's public, private-first report intake."""
+"""Preview approved CleanApp reports, explicit handling and recorded outcomes."""
 import argparse
+from datetime import datetime
 import hashlib
 from html.parser import HTMLParser
 import json
 import math
 import os
+import re
 from pathlib import Path
 import sys
 import tempfile
@@ -15,9 +17,9 @@ import urllib.request
 import uuid
 
 FRONT_DOOR = "https://www.cleanapp.io/agents"
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 ALLOWED_HOSTS = {"www.cleanapp.io", "cleanapp.io", "live.cleanapp.io"}
-FIELDS = {"description", "title", "source_id", "agent_name", "url", "latitude", "longitude"}
+FIELDS = {"description", "title", "source_id", "agent_name", "url", "latitude", "longitude", "handling"}
 
 
 class ClientError(Exception):
@@ -135,6 +137,13 @@ def validate_payload(obj):
     if len(obj["description"].encode("utf-8")) > 8192:
         raise ClientError("description exceeds 8192 UTF-8 bytes")
     obj = dict(obj)
+    if "handling" in obj:
+        handling = obj["handling"]
+        if (not isinstance(handling, dict) or set(handling) != {"publication", "notices"}
+                or handling["publication"] not in ("private", "automatic")
+                or handling["notices"] not in ("none", "automatic")):
+            raise ClientError("handling must explicitly set publication private|automatic and notices none|automatic")
+        obj["handling"] = dict(handling)
     for name, limit in (("title", 255), ("source_id", 128), ("agent_name", 80), ("url", 2048)):
         if name in obj:
             if not isinstance(obj[name], str):
@@ -179,15 +188,109 @@ def save_private(path, obj):
 
 
 def validate_receipt(receipt, endpoint, *, allow_local_http=False):
+    if not isinstance(receipt, dict):
+        raise ClientError("Expected a private receipt object")
     if not all(isinstance(receipt.get(x), str) and receipt[x] for x in ("receipt_id", "tracking_token", "status_url")):
         raise ClientError("Response did not contain a complete private receipt")
-    if receipt.get("status") != "quarantined" or receipt.get("publication_status") != "private":
-        raise ClientError("Expected quarantine/private receipt; inspect the saved response")
+    if receipt.get("status") != "quarantined" or receipt.get("publication_status") not in ("private", "pending", "public", "held"):
+        raise ClientError("Expected a quarantine intake receipt with a recorded publication state; inspect the saved response")
     result = dict(receipt)
     result["status_url"] = urllib.parse.urljoin(endpoint, receipt["status_url"])
     checked_url(result["status_url"], allow_local_http)
     if origin(result["status_url"]) != origin(endpoint) or urllib.parse.urlsplit(result["status_url"]).query:
         raise ClientError("Receipt status URL must share the intake origin and exclude token queries")
+    if (not re.fullmatch(r"rcpt_[A-Za-z0-9_-]{1,128}", result["receipt_id"])
+            or urllib.parse.urlsplit(result["status_url"]).path != "/api/v1/public/agent-reports/receipts/" + result["receipt_id"]):
+        raise ClientError("Receipt status URL must identify exactly this private receipt")
+    return result
+
+
+def bounded_text(value, limit):
+    return value if isinstance(value, str) and len(value) <= limit else None
+
+
+def recorded_time(value):
+    if not isinstance(value, str) or len(value) > 40:
+        return None
+    try:
+        return value if datetime.fromisoformat(value.replace("Z", "+00:00")).tzinfo else None
+    except ValueError:
+        return None
+
+
+def canonical_path(value):
+    return value if isinstance(value, str) and re.fullmatch(r"/(physical|digital)/report/rpt_[A-Za-z0-9_-]+", value) else None
+
+
+def project_outcome(value):
+    """Expose recorded decisions/actions; never raw reports or provider bodies."""
+    if not isinstance(value, dict):
+        return None
+    processing, publication, action = (value.get(k) for k in ("processing", "publication", "next_action"))
+    deliveries = value.get("delivery")
+    if (not all(isinstance(x, dict) for x in (processing, publication, action))
+            or processing.get("status") not in ("pending_analysis", "analyzed", "failed", "not_required")
+            or publication.get("status") not in ("private", "pending", "public", "held")
+            or action.get("type") not in ("none", "provide_information", "wait", "retry", "review_privacy")
+            or not isinstance(value.get("final"), bool) or not isinstance(deliveries, list) or len(deliveries) > 20):
+        return None
+    result = {"processing": {"status": processing["status"]}, "publication": {"status": publication["status"]},
+              "delivery": [], "next_action": {"type": action["type"]}, "final": value["final"]}
+    if recorded_time(processing.get("completed_at")):
+        result["processing"]["completed_at"] = processing["completed_at"]
+    if publication["status"] == "public":
+        path = canonical_path(publication.get("canonical_path"))
+        if not path:
+            return None
+        result["publication"]["canonical_path"] = path
+    if bounded_text(publication.get("reason_code"), 128):
+        result["publication"]["reason_code"] = publication["reason_code"]
+    if value.get("decision") is not None:
+        decision = value["decision"]
+        if (not isinstance(decision, dict) or decision.get("state") not in ("pending", "accepted", "cluster_candidate", "needs_information", "rejected", "held")
+                or not bounded_text(decision.get("reason_code"), 128) or not bounded_text(decision.get("message"), 2000)
+                or type(decision.get("policy_version")) is not int or decision["policy_version"] < 1):
+            return None
+        result["decision"] = {k: decision[k] for k in ("state", "reason_code", "message", "policy_version")}
+        if recorded_time(decision.get("decided_at")):
+            result["decision"]["decided_at"] = decision["decided_at"]
+    for delivery in deliveries:
+        if (not isinstance(delivery, dict) or delivery.get("channel") not in ("email", "blockscan")
+                or delivery.get("status") not in ("not_requested", "pending", "sent", "held", "failed", "uncertain")
+                or type(delivery.get("evidence_count")) is not int or delivery["evidence_count"] < 0):
+            return None
+        if delivery["status"] == "sent" and (not delivery["evidence_count"] or not recorded_time(delivery.get("last_sent_at"))):
+            return None
+        item = {k: delivery[k] for k in ("channel", "status", "evidence_count")}
+        if recorded_time(delivery.get("last_sent_at")):
+            item["last_sent_at"] = delivery["last_sent_at"]
+        if bounded_text(delivery.get("reason_code"), 128):
+            item["reason_code"] = delivery["reason_code"]
+        result["delivery"].append(item)
+    if isinstance(action.get("fields"), list):
+        result["next_action"]["fields"] = [x for x in action["fields"][:20] if isinstance(x, str) and re.fullmatch(r"[a-z_]{1,80}", x)]
+    relationship = value.get("relationship")
+    if isinstance(relationship, dict) and relationship.get("type") == "cluster_candidate" and isinstance(relationship.get("candidates"), list):
+        candidates = []
+        for candidate in relationship["candidates"][:10]:
+            if not isinstance(candidate, dict):
+                continue
+            path = canonical_path(candidate.get("canonical_path"))
+            if (path and candidate.get("type") == "report" and candidate.get("reference") == path.rsplit("/", 1)[1]
+                    and bounded_text(candidate.get("reason_code"), 128)):
+                candidates.append({k: candidate[k] for k in ("type", "reference", "canonical_path", "reason_code")})
+        result["relationship"] = {"type": "cluster_candidate", "candidates": candidates}
+    return result
+
+
+def receipt_summary(receipt):
+    result = {k: receipt[k] for k in ("receipt_id", "status", "publication_status", "processing_status", "received_at")
+              if bounded_text(receipt.get(k), 191)}
+    if isinstance(receipt.get("idempotency_replay"), bool):
+        result["idempotency_replay"] = receipt["idempotency_replay"]
+    outcome = project_outcome(receipt.get("outcome"))
+    if outcome is not None:
+        result["outcome"] = outcome
     return result
 
 
@@ -216,7 +319,9 @@ def main(argv=None):
             saved = json.loads(Path(args.receipt_file).read_text())
             receipt = validate_receipt(saved["receipt"], saved["endpoint"], allow_local_http=args.allow_local_http)
             _, result = json_request(receipt["status_url"], token=receipt["tracking_token"], **net)
-            print(json.dumps({k: result.get(k) for k in ("receipt_id", "status", "publication_status")}))
+            if result.get("receipt_id") != receipt["receipt_id"]:
+                raise ClientError("Status did not identify the same private receipt")
+            print(json.dumps(receipt_summary(result)))
             return 0
         if args.discover:
             print(json.dumps(discover(args.front_door, **net), indent=2))
@@ -260,9 +365,7 @@ def main(argv=None):
             raise ClientError("Receipt source_id differs from the request; inspect saved response")
         checkpoint["delivery"] = "acknowledged"
         save_private(args.receipt_file, checkpoint)
-        print(json.dumps({"receipt_id": receipt["receipt_id"], "status": receipt["status"],
-                          "publication_status": receipt["publication_status"], "idempotency_replay": receipt.get("idempotency_replay"),
-                          "private_receipt_file": args.receipt_file}))
+        print(json.dumps({**receipt_summary(receipt), "private_receipt_file": args.receipt_file}))
         return 0
     except (ClientError, ValueError, OSError, KeyError) as e:
         print(f"CleanApp: {e}", file=sys.stderr)

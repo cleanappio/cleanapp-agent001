@@ -1,6 +1,6 @@
 ---
 name: cleanapp-report-problem
-description: Submit an observed physical or digital problem to CleanApp for private review, or check its receipt. Use for a user's report of a hazard, access barrier, waste, broken infrastructure, software bug, scam or service failure. Excludes ordinary advice, emergency dispatch and autonomous bulk collection.
+description: Prepare and submit an observed physical or digital problem to CleanApp, choose publication and notice permissions, or track recorded review decisions and actions. Use for a user's hazard, access barrier, waste, infrastructure, software bug, scam or service failure report. Excludes ordinary advice, emergency dispatch and autonomous bulk collection.
 metadata: {"clawdbot":{"homepage":"https://www.cleanapp.io/agents","requires":{"bins":["python3"]}}}
 ---
 
@@ -14,13 +14,21 @@ Use only the observation the user wants to send. Preserve uncertainty and source
 
 Connect **https://live.cleanapp.io/openai/mcp** using **Streamable HTTP**, authentication **none**. The `/openai/` path also serves generic MCP clients; the optional interactive widget is for supporting hosts.
 
-1. Call `cleanapp_prepare_report` to produce the exact factual preview.
-2. After the user approves that preview and sending it, call `cleanapp_submit_report` with the returned `draft_token` and `confirmed: true`. Reuse that draft token on retry.
-3. Return the private receipt. Use `cleanapp_report_status` with its tracking token when asked about status. An unknown delivery is a reason to check the receipt before sending again.
+1. Call `cleanapp_prepare_report` with the factual observation and explicit `handling`. New MCP previews default to `{publication:"automatic",notices:"automatic"}`: eligible publication and responsible-party notices after server privacy/eligibility checks. Offer `publication:"private"` and `notices:"none"` when requested. Display the exact report and both permission disclosures; preparing is not submission or approval. Set `requires_redaction:true` if the user requests privacy review or declares private information. Omitting it never certifies privacy clearance.
+2. After the user approves that preview, its publication/notice permissions and sending it, call `cleanapp_submit_report` with the unchanged `draft_token` and `confirmed:true`. Permissions cannot be upgraded at submission or retry. Older sealed private drafts retain their original private handling.
+3. Return the private receipt. Use `cleanapp_report_status` for its recorded outcome and next action while processing is pending. Unknown delivery is a reason to check the receipt before retrying the same draft.
 
 ## Client with outbound HTTPS POST
 
 The included Python client discovers the current public endpoint. `description` alone is enough; title, source URL, agent name and coordinates are optional. No CleanApp API token is read or required.
+
+For automatic handling, prepare JSON containing the user's real observation plus these explicitly approved permissions:
+
+```json
+{"description":"<the actual observed problem>","handling":{"publication":"automatic","notices":"automatic"}}
+```
+
+Show the exact content and permissions before sending. This HTTPS client's default omission of `handling` preserves private publication and no notices for older workflows. To request those explicitly, use `{"publication":"private","notices":"none"}`. Do not add a nested Wire `report`, `schema_version` or human-readable source ID to this public payload.
 
 Preview the user's exact report offline:
 
@@ -41,6 +49,6 @@ If the host only browses GET pages, or its execution tool has no outbound networ
 
 ## Receipt meaning and advanced ingestion
 
-Public submissions enter a **private quarantine review lane**. A receipt confirms intake status, not public publication, recipient notification, resolution, reputation credit or payment. Respect `429`/`Retry-After`; do not retry aggressively.
+Reports start in **private quarantine**. Analysis is the normal review: the private receipt's `outcome` records processing, decision/reason, publication, delivery evidence and next action. Return those specific states; check status again while `final` is false. A `cluster_candidate` is additional independent evidence for a related issue, retaining the reporter's observation and attribution. Exact request replay means the same submission was already received; it is a separate technical fact. Pending is not sent, and an evidence-backed send does not mean read or fixed. Final means this processing cycle ended, not issue resolution. Unsafe or ineligible actions can be held with a reason; neither publication nor notices are guaranteed. No reputation credit or payment is promised. Respect `429`/`Retry-After`; do not retry aggressively.
 
 For request fields, status, retries and authenticated higher-volume Wire/CLI use, read [the API reference](references/API_REFERENCE.md). The advanced Wire path has separate API-key requirements; this public first-report skill does not provision those keys.
