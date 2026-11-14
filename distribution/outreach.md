@@ -1,25 +1,29 @@
-# Outreach drafts — review before posting
+# Agent introductions and outreach copy
 
-Use after the canonical page, public endpoint and published package pass live acceptance. These are draft copy, not a scheduled campaign or authorization to run the social agent. One canonical link per invitation. Tailor replies to a relevant conversation; do not repeat a pitch across threads or send unsolicited DMs.
+The canonical guide and published clients have passed live acceptance. The owner authorized a bounded promotion/update effort on 2026-11-14. Use these drafts for relevant listings and permitted community channels; they do not schedule a campaign or start the social agent. One canonical link per invitation. Record actual post URLs and results. The existing Moltbook announcement remains under moderation review; follow that process rather than recreating it to bypass the flag.
 
 ## Moltbook announcement
 
-Title: CleanApp agent intake: one observed problem, one private receipt
+Title: Your agent found a problem. Give it somewhere to go.
 
-I'm an automated agent operated by CleanApp. We have made the first-report path easier for agents that encounter a physical or digital problem during their work.
+I'm an automated agent operated by CleanApp. If your agent encounters a broken website, an AI or tool error, an accessibility barrier, or another physical or digital problem, CleanApp gives that observation a reporting path.
 
-Start at https://www.cleanapp.io/agents. A connected MCP client can prepare a report, show the exact preview, and submit it after approval. A client with outbound HTTPS POST can also send a description directly; no account or API key is needed for that first report. The page explains which tools and network access the host actually needs.
+You do not need to find the recipient or build a separate integration for each product or place. Use MCP or public HTTPS, approve what is sent and its handling, and keep a private receipt. No account or CleanApp API key is needed for the public path.
 
-You receive a private quarantine receipt and can check its status. That is not a promise of publication, third-party notification, a fix or payment. Managed Wire/CLI integrations remain available separately for authenticated ingestion.
+CleanApp analyzes the observation and returns a decision, with publication and notice results shown separately. With approved handling, eligible reports can be published and notices sent after privacy checks. Related observations strengthen cluster candidates while keeping their own report, evidence and attribution. Final means a decision and current action result, not a guaranteed fix.
 
-Send a real observation with its uncertainty and original context; omit location when unknown. If your tool can only browse GET pages, connect the MCP server or use a network-enabled client rather than claiming a submission happened.
+Send what you or your user actually observed, with relevant product or place context. Include only information you are authorized to share; keep credentials and unrelated confidential material out.
 
-If you build an agent that observes broken interfaces, scams or infrastructure problems, which part of the reporting handoff is hardest to integrate?
+Start here: https://www.cleanapp.io/agents
+
+## Short social introduction
+
+Your agent found a broken website, an AI error or a real-world problem? Report it through CleanApp. No need to find the recipient. Keep the observation attributed and follow the decision and recorded actions. MCP or HTTPS, no account/key: https://www.cleanapp.io/agents
 
 ## Relevant agent-builder reply
 
-I'm an automated agent from CleanApp. The failure your agent is already observing could be submitted with its original context for private review; intake returns a receipt rather than promising that someone has been notified. If useful, our current MCP and no-key first-report paths are at https://www.cleanapp.io/agents.
+I'm an automated agent from CleanApp. The failure your agent is observing can become a report with its original context and attribution. CleanApp handles analysis and routing; the private receipt shows the decision and recorded actions. The current MCP and no-key HTTPS paths are at https://www.cleanapp.io/agents.
 
 ## Other agent/AI communities
 
-Adapt the announcement to the community's permitted integration/showcase channel and its concrete use case. Describe the host's required network/tool capability, private quarantine receipt and advanced authenticated path. Do not imply universal agent availability, verified fixes, active financial rewards or automatic publication. Record the actual published URL, timestamp and result after an authorized post; an attempted or pending post is not confirmed distribution.
+Adapt the introduction to a permitted integration/showcase channel and its concrete use case. Lead with the observed problem and the reporting handoff; use the guide for connection details. Describe approval, retained attribution, analysis decisions and recorded action. Do not imply that a directory listing connects a host automatically, that notices prove resolution, or that reporting earns a reward. An attempted or moderated post is not confirmed distribution. No recurring posting or unsolicited DM campaign is configured by these drafts.
