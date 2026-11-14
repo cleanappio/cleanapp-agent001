@@ -44,14 +44,21 @@ Verify release artifacts by inspecting the published version metadata and files,
 
 [Official MCP Registry publishing](registry/README.md) is maintained in the actual MCP implementation repository, using GitHub Actions OIDC. This client/outreach repository keeps links rather than copied registry versions or publishing workflows.
 
-The [X announcement published on 2026-11-13](https://x.com/CleanApp/status/2121347177221964087) links the canonical guide. It is an earlier announcement; its existence is separate from any later promotion.
+### Public distribution status — 2026-11-14
 
-The [new X announcement on 2026-11-14](https://x.com/CleanApp/status/2121663499826782310) introduces the current guide and reporting value. The CleanApp X profile pins the guide announcement.
+| Surface | Verified state |
+| --- | --- |
+| [X](https://x.com/CleanApp/status/2121663499826782310) | New guide announcement published and pinned on the CleanApp profile. The [November 13 announcement](https://x.com/CleanApp/status/2121347177221964087) is historical. |
+| [Moltbook profile](https://www.moltbook.com/u/CleanApp) | Updated description is visible publicly; public readback matched at 18:31 UTC. The [older post](https://www.moltbook.com/post/7717edfa-1535-4f86-9257-39f6ad910337) remains verified but marked as spam. A support review was requested on November 13; no new post, reply or repost was created. |
+| [agentskill.sh portable skill](https://agentskill.sh/@raw-githubusercontent-com/cleanapp-report-problem-portable) | Public standalone instructions and source guide verified. This is the recommended single-file directory variant. |
+| [MCPServers.org](https://mcpservers.org) | Free submission confirmed; confirmation indicated review within two weeks. Not a live listing yet. |
+| [MCPMarket AgentSkill](https://mcpmarket.com) | Free submission queue confirmed, with an estimated 4–6 weeks. Not a live listing yet. The paid remote-MCP listing option was declined. |
+| [AIAnytime PR 546](https://github.com/AIAnytime/Awesome-MCP-Servers/pull/546) | Open submission; awaiting the upstream maintainer. |
+| [TensorBlock PR 6006](https://github.com/TensorBlock/awesome-mcp-servers/pull/6006) | Open submission; awaiting the upstream maintainer. |
+| [Trompetilla PR 3](https://github.com/Trompetilla/Skills/pull/3) | Open correction, refreshed with current instructions at commit `676da99`. Registry-generated `_meta.json` was not changed. |
+| [Glama](https://glama.ai/mcp/servers) | Existing listing is healthy at 1.1.0 with five tools and the current description. A guide/category correction was requested through Report Issue; no resulting public change is claimed. |
+| [OpenAI public listing](https://chatgpt.com/plugins/plugin_asdk_app_6ac34b4d108081918637006965cec037) | Portal confirms package 1.0.3 is Published and listed publicly. The hosted web entry now offers the agent guide and real install link. Prepared 1.1.0 store metadata has not been uploaded or published. |
 
-The [Moltbook announcement](https://www.moltbook.com/post/7717edfa-1535-4f86-9257-39f6ad910337) was created and verified, but its public API readback still marks it as spam, and it was absent from the checked public feed. A moderation review request was sent to Moltbook support on 2026-11-13. The [claimed CleanApp profile](https://www.moltbook.com/u/CleanApp) was updated on 2026-11-14 to describe analysis decisions, related evidence and approved actions; authenticated readback matches, while public-profile propagation remains unconfirmed. No new Moltbook post, reply or repost was created. Do not count the moderated post as confirmed feed distribution or recreate it to bypass moderation.
+Directories that import only a skill file should use [the portable MCP/HTTPS variant](../skills/cleanapp-report-problem-portable/SKILL.md), `cleanapp-report-problem-portable`. The [earlier agentskill.sh packaged import](https://agentskill.sh/@raw-githubusercontent-com/cleanapp-report-problem) includes optional helper references and is not the recommended standalone entry. The published OpenClaw 0.3.0 archive remains unchanged; ClawHub 0.3.0 and the official MCP Registry 1.1.0 already point to the correct guide.
 
-Directories that import only a skill file should use [the uniquely named portable MCP/HTTPS variant](../skills/cleanapp-report-problem-portable/SKILL.md), `cleanapp-report-problem-portable`. The published OpenClaw 0.3.0 archive remains unchanged. The [earlier agentskill.sh import](https://agentskill.sh/@raw-githubusercontent-com/cleanapp-report-problem) used the packaged skill; replace that directory import with the portable variant so its instructions do not depend on absent helper files. A prepared source file is not proof that a directory has updated its copy.
-
-The [Trompetilla mirror correction PR](https://github.com/Trompetilla/Skills/pull/3) remains open for the upstream maintainer. Its existing public listing still needs the working guide and current instructions; an open correction is not an updated listing.
-
-The owner authorized a new bounded promotion/update effort on 2026-11-14. [Current outreach copy](outreach.md) supports that work; this does not authorize scheduling or an ongoing posting loop. Record actual published URLs and platform results separately. Updating registry/package metadata does not install a connector in Grok, and a listing does not prove an agent connected or submitted a report.
+The owner authorized this bounded promotion/update effort. [Outreach copy](outreach.md) supports it; no recurring campaign or runtime was started. Submitted, queued and open-PR entries above are not live listings. A listing does not install a connector in an agent host or prove a report was submitted. The moderated Moltbook post is not confirmed feed distribution and has not been recreated to bypass moderation.
