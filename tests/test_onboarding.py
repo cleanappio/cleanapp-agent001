@@ -23,7 +23,8 @@ spec.loader.exec_module(report)
 
 @contextmanager
 def fixture():
-    state = {"gets": [], "posts": [], "db": sqlite3.connect(":memory:", check_same_thread=False), "redirect_status": False}
+    state = {"gets": [], "posts": [], "db": sqlite3.connect(":memory:", check_same_thread=False), "redirect_status": False,
+             "outcome": None, "wrong_receipt": False}
     state["db"].execute("CREATE TABLE intake(source_id TEXT PRIMARY KEY, payload TEXT, receipt_id TEXT, token TEXT, lane TEXT)")
 
     class Handler(BaseHTTPRequestHandler):
@@ -49,7 +50,11 @@ def fixture():
                 if not row or self.headers.get("Authorization") != "Bearer " + row[1]:
                     self.answer(404, {"error": "not_found"})
                 else:
-                    self.answer(200, {"receipt_id": row[0], "status": "quarantined", "publication_status": "private"})
+                    result = {"receipt_id": "rcpt_other" if state["wrong_receipt"] else row[0], "status": "quarantined", "publication_status": "private"}
+                    if state["outcome"]:
+                        result.update({"outcome": state["outcome"], "publication_status": state["outcome"]["publication"]["status"],
+                                       "processing_status": state["outcome"]["processing"]["status"], "description": "unrelated private text", "tracking_token": row[1]})
+                    self.answer(200, result)
             else:
                 self.answer(404, {"error": "not_found"})
 
@@ -160,6 +165,100 @@ class OnboardingTests(unittest.TestCase):
                 report.validate_payload(bad)
         upper_uuid = str(uuid.uuid4()).upper()
         self.assertEqual(report.validate_payload({"description": "x", "source_id": upper_uuid})["source_id"], upper_uuid.lower())
+
+    def test_optional_handling_is_explicit_and_omission_keeps_legacy_payload(self):
+        self.assertNotIn("handling", report.validate_payload({"description": "Original private workflow"}))
+        for handling in ({"publication": "automatic", "notices": "automatic"}, {"publication": "private", "notices": "none"}):
+            self.assertEqual(report.validate_payload({"description": "Observation", "handling": handling})["handling"], handling)
+        for handling in (None, "automatic", {}, {"publication": "automatic"}, {"publication": [], "notices": "none"},
+                         {"publication": "automatic", "notices": "all"}, {"publication": "private", "notices": "none", "clearance": True}):
+            with self.assertRaises(report.ClientError):
+                report.validate_payload({"description": "Observation", "handling": handling})
+
+    def test_handling_change_cannot_upgrade_an_exact_retry(self):
+        with fixture() as (base, state), tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "input.json"
+            receipt = Path(tmp) / "private.json"
+            payload = {"description": "Local fixture observation", "handling": {"publication": "private", "notices": "none"}}
+            source.write_text(json.dumps(payload))
+            args = ("--front-door", base + "/agents", "--allow-local-http", "--submit", "--input", str(source), "--receipt-file", str(receipt))
+            first = self.run_script(CLIENT, *args)
+            self.assertEqual(first.returncode, 0, first.stderr)
+            payload["handling"] = {"publication": "automatic", "notices": "automatic"}
+            source.write_text(json.dumps(payload))
+            changed = self.run_script(CLIENT, *args, "--retry")
+            self.assertEqual(changed.returncode, 2)
+            self.assertIn("Retry payload changed", changed.stderr)
+            self.assertEqual(len([x for x in state["posts"] if x[0].endswith("/agent-reports")]), 1)
+
+    def test_recorded_outcome_status_preserves_evidence_and_hides_private_fields(self):
+        with fixture() as (base, state), tempfile.TemporaryDirectory() as tmp:
+            source, receipt = Path(tmp) / "input.json", Path(tmp) / "private.json"
+            source.write_text(json.dumps({"description": "Local contract fixture only", "handling": {"publication": "automatic", "notices": "automatic"}}))
+            first = self.run_script(CLIENT, "--front-door", base + "/agents", "--allow-local-http", "--submit", "--input", str(source), "--receipt-file", str(receipt))
+            self.assertEqual(first.returncode, 0, first.stderr)
+            state["outcome"] = outcome_fixture()
+            state["outcome"]["publication"] = {"status": "public", "canonical_path": "/digital/report/rpt_fixture"}
+            state["outcome"]["delivery"] = [{"channel": "blockscan", "status": "sent", "evidence_count": 1, "last_sent_at": "2026-11-14T12:00:00Z"}]
+            status = self.run_script(CLIENT, "--status", "--receipt-file", str(receipt), "--allow-local-http")
+            self.assertEqual(status.returncode, 0, status.stderr)
+            result = json.loads(status.stdout)
+            self.assertEqual(result["outcome"], state["outcome"])
+            self.assertEqual(result["publication_status"], "public")
+            self.assertEqual(result["receipt_id"], json.loads(first.stdout)["receipt_id"])
+            self.assertNotIn("unrelated private text", status.stdout + status.stderr)
+            self.assertNotIn("tracking_token", status.stdout + status.stderr)
+            sent = [x for x in state["posts"] if x[0].endswith("/agent-reports")]
+            self.assertEqual(sent[0][1]["handling"], {"publication": "automatic", "notices": "automatic"})
+            self.assertIsNone(sent[0][2])
+
+    def test_status_must_identify_the_same_private_receipt(self):
+        with fixture() as (base, state), tempfile.TemporaryDirectory() as tmp:
+            receipt = Path(tmp) / "private.json"
+            first = self.run_script(CLIENT, "--front-door", base + "/agents", "--allow-local-http", "--submit", "--description", "Local fixture only", "--receipt-file", str(receipt))
+            self.assertEqual(first.returncode, 0, first.stderr)
+            state["wrong_receipt"] = True
+            status = self.run_script(CLIENT, "--status", "--receipt-file", str(receipt), "--allow-local-http")
+            self.assertEqual(status.returncode, 2)
+            self.assertIn("same private receipt", status.stderr)
+
+    def test_cluster_candidate_projection_has_only_public_references(self):
+        outcome = outcome_fixture()
+        candidate = {"type": "report", "reference": "rpt_related", "canonical_path": "/physical/report/rpt_related", "reason_code": "related_observation"}
+        outcome["decision"]["state"] = "cluster_candidate"
+        outcome["relationship"] = {"type": "cluster_candidate", "candidates": [candidate, {"type": "report", "reference": "private_seq", "body": "another private report"},
+            {**candidate, "canonical_path": "https://evil.invalid/private"}, {**candidate, "reference": "private_seq"}, {"type": "case", "reference": "case_unknown"}]}
+        projected = report.project_outcome(outcome)
+        self.assertEqual(projected["relationship"], {"type": "cluster_candidate", "candidates": [candidate]})
+        self.assertNotIn("private_seq", json.dumps(projected))
+        self.assertNotIn("another private report", json.dumps(projected))
+
+    def test_action_states_are_not_promoted_and_missing_proof_cannot_claim_sent(self):
+        for status in ("pending", "held", "failed", "uncertain", "not_requested"):
+            outcome = outcome_fixture()
+            outcome["delivery"] = [{"channel": "email", "status": status, "evidence_count": 0}]
+            self.assertEqual(report.project_outcome(outcome)["delivery"], outcome["delivery"])
+        for delivery in ({"channel": "email", "status": "sent", "evidence_count": 0, "last_sent_at": "2026-11-14T12:00:00Z"},
+                         {"channel": "email", "status": "sent", "evidence_count": 1}, {"channel": "email", "status": "sent", "evidence_count": True}):
+            outcome = outcome_fixture()
+            outcome["delivery"] = [delivery]
+            self.assertIsNone(report.project_outcome(outcome))
+        outcome = outcome_fixture()
+        outcome["publication"] = {"status": "public", "canonical_path": "/digital/report/rpt_secret?token=private"}
+        self.assertIsNone(report.project_outcome(outcome))
+
+    def test_deterministic_privacy_hold_does_not_claim_analysis_ran(self):
+        outcome = outcome_fixture()
+        outcome["processing"] = {"status": "not_required"}
+        outcome["decision"]["state"] = "held"
+        outcome["next_action"] = {"type": "review_privacy"}
+        self.assertEqual(report.project_outcome(outcome), outcome)
+
+
+def outcome_fixture():
+    return {"processing": {"status": "analyzed"}, "decision": {"state": "accepted", "reason_code": "eligible_observation",
+            "message": "This fixture observation is eligible for approved actions.", "policy_version": 1},
+            "publication": {"status": "private"}, "delivery": [], "next_action": {"type": "none"}, "final": True}
 
 
 if __name__ == "__main__":
