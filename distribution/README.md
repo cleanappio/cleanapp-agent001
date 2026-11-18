@@ -10,10 +10,14 @@ This repository owns the ClawHub client package and outreach source. Backend int
 
 ```bash
 python3 -m unittest discover -s tests -p 'test_onboarding.py' -v
-python3 tools/onboarding_acceptance.py
+python3 -B tools/onboarding_acceptance.py --discovery-probe --timeout 10
 ```
 
-The default acceptance run only discovers `/agents` → linked `agents.txt` and asks MCP for its tool inventory. The HTTP/SQLite fixture tests exercise one persisted private report, a clean subprocess without API-key environment, status, exact retry and one invalid-token rejection. That fixture validates the public client contract; backend handler/database integration is checked in the backend repository.
+The read-only probe checks the homepage link to `/agents`, follows the guide to the linked `agents.txt`, negotiates a fresh MCP session and checks its tool inventory. The registry check verifies that the exact lookup and a brand search both find the active CleanApp listing and agree on the guide, MCP endpoint and live MCP version. The probe uses no provider keys, models, tool invocations or report submissions. A successful run establishes availability from this client at the time checked. Installs, host-specific tool selection, intake and repeat use require separate evidence.
+
+[Agent discovery probe](../.github/workflows/agent-discovery.yml) runs at minute 17 every six hours UTC and supports manual runs. It uses one GitHub-hosted runner with a three-minute timeout and read-only repository access. A blocked request or inconsistent result fails the job with the affected surface named. See the [workflow runs](https://github.com/cleanappio/cleanapp-agent001/actions/workflows/agent-discovery.yml) for execution evidence and timing.
+
+The HTTP/SQLite fixture tests exercise one persisted private report, a clean subprocess without API-key environment, status, exact retry and one invalid-token rejection. That fixture validates the public client contract. Backend handler and database integration are checked in the backend repository.
 
 After deployment, the root/operator can run the same client against a **real approved observation** of the onboarding failure, stored in `approved-report.json` outside git:
 

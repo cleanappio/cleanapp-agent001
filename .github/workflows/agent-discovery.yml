@@ -1,0 +1,24 @@
+name: Agent discovery probe
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-discovery-probe
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Check public agent discovery without submitting
+        run: python3 -B tools/onboarding_acceptance.py --discovery-probe --timeout 10
