@@ -11,6 +11,7 @@ import sys
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +20,9 @@ HARNESS = ROOT / "tools/onboarding_acceptance.py"
 spec = importlib.util.spec_from_file_location("report", CLIENT)
 report = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(report)
+harness_spec = importlib.util.spec_from_file_location("onboarding_acceptance", HARNESS)
+harness = importlib.util.module_from_spec(harness_spec)
+harness_spec.loader.exec_module(harness)
 
 
 @contextmanager
@@ -62,8 +66,21 @@ def fixture():
             payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             state["posts"].append((self.path, payload, self.headers.get("Authorization")))
             if self.path == "/mcp":
-                self.answer(200, {"jsonrpc": "2.0", "id": 1, "result": {"tools": [{"name": x} for x in
-                            ["cleanapp_prepare_report", "cleanapp_submit_report", "cleanapp_report_status"]]}})
+                method = payload["method"]
+                if method == "initialize":
+                    self.answer(200, {"jsonrpc": "2.0", "id": payload["id"], "result": {
+                        "protocolVersion": "2025-03-26", "serverInfo": {"name": "fixture", "version": "test"},
+                    }})
+                elif self.headers.get("MCP-Protocol-Version") != "2025-03-26":
+                    self.answer(400, {"error": "missing_protocol_version"})
+                elif method == "notifications/initialized":
+                    self.answer(202, "")
+                elif method == "tools/list":
+                    self.answer(200, {"jsonrpc": "2.0", "id": payload["id"], "result": {"tools": [
+                        {"name": x} for x in ["cleanapp_prepare_report", "cleanapp_submit_report", "cleanapp_report_status"]
+                    ]}})
+                else:
+                    self.answer(404, {"error": "unsupported_mcp_method"})
             elif self.path == "/api/v1/public/agent-reports":
                 source_id = payload["source_id"]
                 fingerprint = json.dumps(payload, sort_keys=True)
@@ -126,9 +143,31 @@ class OnboardingTests(unittest.TestCase):
         with fixture() as (base, state):
             p = self.run_script(HARNESS, "--front-door", base + "/agents", "--allow-local-http")
             self.assertEqual(p.returncode, 0, p.stderr)
-            self.assertFalse(json.loads(p.stdout)["submitted"])
+            result = json.loads(p.stdout)
+            self.assertFalse(result["submitted"])
+            self.assertEqual(result["mcp_server_version"], "test")
             self.assertEqual(state["db"].execute("SELECT count(*) FROM intake").fetchone()[0], 0)
-            self.assertEqual([x[0] for x in state["posts"]], ["/mcp"])
+            self.assertEqual([(path, payload["method"]) for path, payload, _ in state["posts"]], [
+                ("/mcp", "initialize"), ("/mcp", "notifications/initialized"), ("/mcp", "tools/list"),
+            ])
+
+    def test_scheduled_registry_mode_cannot_submit(self):
+        p = self.run_script(HARNESS, "--discovery-probe", "--submit")
+        self.assertEqual(p.returncode, 2)
+        self.assertIn("not allowed with argument", p.stderr)
+
+    def test_registry_requires_active_matching_exact_and_search_results(self):
+        endpoints = {"front_door": report.FRONT_DOOR, "mcp_endpoint": "https://live.cleanapp.io/openai/mcp"}
+        metadata = {harness.REGISTRY_OFFICIAL: {"status": "active", "isLatest": True}}
+        server = {"name": harness.REGISTRY_NAME, "version": "test", "websiteUrl": endpoints["front_door"],
+                  "remotes": [{"type": "streamable-http", "url": endpoints["mcp_endpoint"]}]}
+        exact = {"server": server, "_meta": metadata}
+        with patch.object(harness, "registry_get", side_effect=[exact, {"servers": [exact]}]):
+            self.assertEqual(harness.verify_registry(endpoints, 1), "test")
+        drift = {"server": {**server, "websiteUrl": "https://www.cleanapp.io/old"}, "_meta": metadata}
+        with patch.object(harness, "registry_get", side_effect=[exact, {"servers": [drift]}]):
+            with self.assertRaisesRegex(harness.client.ClientError, "guide or remote endpoint disagrees"):
+                harness.verify_registry(endpoints, 1)
 
     def test_offline_preview_uses_no_key_or_network(self):
         p = self.run_script(CLIENT, "--front-door", "http://not-a-server.invalid/agents", "--dry-run", "--description", "An observed problem")
