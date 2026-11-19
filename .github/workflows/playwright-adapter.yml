@@ -10,10 +10,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: playwright-adapter-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   adapter:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 5
     defaults:
       run:
         working-directory: recipes/playwright
@@ -41,6 +45,6 @@ jobs:
           printf '%s\n' '{"name":"cleanapp-playwright-consumer-fixture","private":true}' > package.json
           npm install --save-dev --save-exact --no-audit --no-fund "@playwright/test@$playwright_version" "./vendor/cleanapp-playwright-$adapter_version.tgz"
           npm ci --no-audit --no-fund
-          npx playwright install --with-deps chromium
-          node node_modules/@cleanapp/playwright/demo.mjs
+          # The Ubuntu runner includes Chrome.
+          CLEANAPP_DEMO_BROWSER_CHANNEL=chrome node node_modules/@cleanapp/playwright/demo.mjs
           ./node_modules/.bin/cleanapp-playwright-review .cleanapp-qa/demo-*/*.candidate.json
