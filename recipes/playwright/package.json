@@ -1,0 +1,47 @@
+{
+  "name": "@cleanapp/playwright",
+  "version": "0.1.0",
+  "description": "Capture reproducible Playwright failures for private review in CleanApp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cleanappio/cleanapp-agent001.git",
+    "directory": "recipes/playwright"
+  },
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./cleanapp-reporter.d.mts",
+      "default": "./cleanapp-reporter.mjs"
+    }
+  },
+  "bin": {
+    "cleanapp-playwright-review": "./review.mjs"
+  },
+  "files": [
+    "README.md",
+    "cleanapp-reporter.mjs",
+    "cleanapp-reporter.d.mts",
+    "review.mjs",
+    "review.py",
+    "support/report.py",
+    "demo.mjs",
+    "demo.config.mjs",
+    "fixture/checkout.spec.mjs",
+    "examples/github-actions.yml"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "demo": "node demo.mjs",
+    "pack:adapter": "node pack.mjs",
+    "test": "node --test reporter.test.mjs"
+  },
+  "peerDependencies": {
+    "@playwright/test": ">=1.52.0 <2"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1"
+  }
+}

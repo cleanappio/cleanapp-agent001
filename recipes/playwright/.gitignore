@@ -1,0 +1,5 @@
+.cleanapp-qa/
+__pycache__/
+dist/
+node_modules/
+test-results/

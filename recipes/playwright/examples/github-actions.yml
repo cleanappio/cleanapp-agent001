@@ -1,0 +1,56 @@
+name: CleanApp Playwright pilot
+
+# Copy this file into .github/workflows/cleanapp-playwright.yml in your private QA repository.
+# Use a trusted, up-to-date Linux runner labelled cleanapp-qa with Chromium system dependencies.
+# Add these repository variables:
+#   CLEANAPP_QA_ORIGIN: an authorized HTTPS origin such as https://shop.example.org
+#   CLEANAPP_QA_DIR: an existing private, persistent directory outside the checkout and runner temp
+# This workflow assumes npm ci installs the adapter and Playwright for your approved suite.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pilot:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: [self-hosted, linux, cleanapp-qa]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install dependencies and browser
+        run: |
+          npm ci
+          npx playwright install chromium
+      - name: Run the approved QA suite
+        shell: bash
+        env:
+          CLEANAPP_QA_CAPTURE: '1'
+          CLEANAPP_QA_ORIGIN: ${{ vars.CLEANAPP_QA_ORIGIN }}
+          CLEANAPP_QA_DIR: ${{ vars.CLEANAPP_QA_DIR }}
+        run: |
+          if [[ "$CLEANAPP_QA_ORIGIN" != https://* ]]; then
+            echo "Set CLEANAPP_QA_ORIGIN to your approved HTTPS origin." >&2
+            exit 2
+          fi
+          if [[ "$CLEANAPP_QA_DIR" != /* || ! -d "$CLEANAPP_QA_DIR" || ! -w "$CLEANAPP_QA_DIR" ]]; then
+            echo "Set CLEANAPP_QA_DIR to an existing, writable absolute path on private storage." >&2
+            exit 2
+          fi
+          candidate_dir="$(realpath -- "$CLEANAPP_QA_DIR")"
+          if [[ "$candidate_dir/" == "$(realpath -- "$GITHUB_WORKSPACE")/"* ||
+                "$candidate_dir/" == "$(realpath -- "$RUNNER_TEMP")/"* ]]; then
+            echo "Keep CleanApp candidates outside the checkout and runner temp directory." >&2
+            exit 2
+          fi
+          umask 077
+          # Select an approved project with --project if the suite covers other targets.
+          npx playwright test
+      # Review candidates on the runner. Keep candidates, receipts and QA artifacts private.

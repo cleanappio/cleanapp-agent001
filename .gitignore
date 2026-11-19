@@ -15,6 +15,7 @@ build/
 
 # Data
 data/
+.cleanapp-qa/
 *.db
 *.sqlite
 *.sqlite3
