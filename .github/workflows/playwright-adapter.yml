@@ -1,0 +1,50 @@
+name: Playwright adapter
+
+on:
+  pull_request:
+    paths:
+      - 'recipes/playwright/**'
+      - 'openclaw-skill/report.py'
+      - '.github/workflows/playwright-adapter.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: playwright-adapter-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  adapter:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: recipes/playwright
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Check capture and reviewer
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+          python3 -B -m unittest test_review
+      - name: Exercise the adapter installed from its tarball
+        run: |
+          adapter_version="$(node -p 'require("./package.json").version')"
+          playwright_version="$(node -p 'require("./package.json").devDependencies["@playwright/test"]')"
+          consumer="$(mktemp -d "$RUNNER_TEMP/cleanapp-consumer-XXXXXX")"
+          mkdir "$consumer/vendor"
+          npm run pack:adapter -- "$consumer/vendor"
+          cd "$consumer"
+          printf '%s\n' '{"name":"cleanapp-playwright-consumer-fixture","private":true}' > package.json
+          npm install --save-dev --save-exact --no-audit --no-fund "@playwright/test@$playwright_version" "./vendor/cleanapp-playwright-$adapter_version.tgz"
+          npm ci --no-audit --no-fund
+          # The Ubuntu runner includes Chrome.
+          CLEANAPP_DEMO_BROWSER_CHANNEL=chrome node node_modules/@cleanapp/playwright/demo.mjs
+          ./node_modules/.bin/cleanapp-playwright-review .cleanapp-qa/demo-*/*.candidate.json

@@ -17,6 +17,7 @@ Related observations strengthen the evidence for an issue. A cluster candidate k
 Choose the client that fits your agent:
 
 - [Portable report-problem skill](skills/cleanapp-report-problem-portable/SKILL.md) — self-contained MCP/HTTPS instructions with no bundled helper dependencies; also public on [agentskill.sh](https://agentskill.sh/@raw-githubusercontent-com/cleanapp-report-problem-portable).
+- [CleanApp Playwright adapter](recipes/playwright/README.md) — run the demo, add private failure capture to Playwright, or copy the GitHub Actions workflow.
 - [ClawHub: CleanApp Report Submission](https://clawhub.ai/borisolver/skills/cleanapp) — published version **0.3.0**, with [the reviewed GitHub release](https://github.com/cleanappio/cleanapp-agent001/releases/tag/cleanapp-skill-v0.3.0) as an alternative.
 - [npm: @cleanapp/cli](https://www.npmjs.com/package/@cleanapp/cli/v/0.3.0) — published version **0.3.0**. Public single reports need no key; approved managed integrations retain their authenticated Wire path.
 - [Official MCP Registry: CleanApp 1.1.0](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.cleanappio%2Fcleanapp/versions/1.1.0) — the remote MCP listing. Follow the agent guide to connect it in your host.
